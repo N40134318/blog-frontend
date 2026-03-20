@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const api = useApi()
 
 type PostItem = {
@@ -20,6 +22,8 @@ type PageResponse = {
   size: number
 }
 
+type StatusFilter = 'all' | 'draft' | 'published'
+
 const splitTags = (raw: string | null | undefined) => {
   return (raw || '')
     .split(/[,，、。;；|｜]/)
@@ -35,6 +39,27 @@ const page = ref(0)
 const size = ref(5)
 const totalPages = ref(0)
 const currentUsername = ref('')
+const statusFilter = ref<StatusFilter>('all')
+
+const filteredPosts = computed(() => {
+  if (statusFilter.value === 'draft') {
+    return posts.value.filter(post => post.status === 'draft')
+  }
+
+  if (statusFilter.value === 'published') {
+    return posts.value.filter(post => post.status === 'published')
+  }
+
+  return posts.value
+})
+
+const draftCount = computed(() => {
+  return posts.value.filter(post => post.status === 'draft').length
+})
+
+const publishedCount = computed(() => {
+  return posts.value.filter(post => post.status === 'published').length
+})
 
 const loadPosts = async () => {
   loading.value = true
@@ -82,6 +107,10 @@ const nextPage = async () => {
   }
 }
 
+const setStatusFilter = (value: StatusFilter) => {
+  statusFilter.value = value
+}
+
 onMounted(loadPosts)
 </script>
 
@@ -96,7 +125,7 @@ onMounted(loadPosts)
         </p>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 space-y-4">
         <div class="flex flex-col md:flex-row gap-3">
           <input
             v-model="keyword"
@@ -108,6 +137,44 @@ onMounted(loadPosts)
             class="rounded-xl bg-gray-900 text-white px-5 py-3 hover:bg-gray-800 transition"
           >
             搜索
+          </button>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button
+            @click="setStatusFilter('all')"
+            :class="[
+              'rounded-full px-4 py-2 text-sm transition',
+              statusFilter === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ]"
+          >
+            全部（{{ posts.length }}）
+          </button>
+
+          <button
+            @click="setStatusFilter('draft')"
+            :class="[
+              'rounded-full px-4 py-2 text-sm transition',
+              statusFilter === 'draft'
+                ? 'bg-yellow-500 text-white'
+                : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'
+            ]"
+          >
+            草稿（{{ draftCount }}）
+          </button>
+
+          <button
+            @click="setStatusFilter('published')"
+            :class="[
+              'rounded-full px-4 py-2 text-sm transition',
+              statusFilter === 'published'
+                ? 'bg-green-600 text-white'
+                : 'bg-green-50 text-green-700 hover:bg-green-100'
+            ]"
+          >
+            已发布（{{ publishedCount }}）
           </button>
         </div>
       </div>
@@ -128,9 +195,17 @@ onMounted(loadPosts)
         action-to="/create-post"
       />
 
+      <EmptyState
+        v-else-if="filteredPosts.length === 0"
+        title="当前筛选下没有文章"
+        description="试试切换筛选条件，或者去创建新的文章。"
+        action-text="去写文章"
+        action-to="/create-post"
+      />
+
       <div v-else class="grid gap-6">
         <article
-          v-for="post in posts"
+          v-for="post in filteredPosts"
           :key="post.id"
           class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
         >
@@ -162,10 +237,17 @@ onMounted(loadPosts)
                 </span>
 
                 <span
-                  v-else
+                  v-else-if="post.status === 'published'"
                   class="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs text-green-700"
                 >
                   已发布
+                </span>
+
+                <span
+                  v-else
+                  class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600"
+                >
+                  未知状态
                 </span>
               </div>
 

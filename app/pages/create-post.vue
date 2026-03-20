@@ -120,14 +120,13 @@ const submit = async (status: 'draft' | 'published') => {
         ? `草稿保存成功：${data.title}`
         : `发布成功：${data.title}`
 
-    title.value = ''
-    content.value = ''
-    category.value = ''
-    tags.value = ''
-    coverImage.value = ''
-    selectedFile.value = null
-    selectedFileName.value = ''
-    uploadMessage.value = ''
+    if (status === 'draft') {
+      await navigateTo('/my-posts')
+      return
+    }
+
+    await navigateTo(`/posts/${data.id}`)
+    return
   } catch (error: any) {
     errorMessage.value =
       error?.message || (status === 'draft' ? '保存草稿失败' : '发布失败')

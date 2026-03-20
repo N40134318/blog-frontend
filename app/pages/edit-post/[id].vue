@@ -146,6 +146,12 @@ const submit = async (nextStatus: 'draft' | 'published') => {
     })
 
     status.value = data.status === 'published' ? 'published' : 'draft'
+
+    if (nextStatus === 'draft') {
+      await navigateTo('/my-posts')
+      return
+    }
+
     await navigateTo(`/posts/${data.id}`)
   } catch (error: any) {
     errorMessage.value =
