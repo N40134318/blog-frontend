@@ -14,6 +14,9 @@ type PostDetail = {
   category: string | null
   tags: string | null
   coverImage: string | null
+  status: string | null
+  createdAt: number | null
+  updatedAt: number | null
 }
 
 type CommentItem = {
@@ -41,6 +44,11 @@ const renderedContent = computed(() => {
 const tocItems = computed(() => {
   return extractToc(post.value?.content || '')
 })
+
+const formatTime = (timestamp: number | null | undefined) => {
+  if (!timestamp) return '暂无时间'
+  return new Date(timestamp).toLocaleString()
+}
 
 let observer: IntersectionObserver | null = null
 
@@ -201,11 +209,6 @@ const deletePost = async () => {
   }
 }
 
-const formatTime = (timestamp: number) => {
-  if (!timestamp) return ''
-  return new Date(timestamp).toLocaleString()
-}
-
 const splitTags = (raw: string | null | undefined) => {
   return (raw || '')
     .split(/[,，、。;；|｜]/)
@@ -256,9 +259,25 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="p-6 md:p-8">
-              <h1 class="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
-                {{ post.title }}
-              </h1>
+              <div class="flex flex-wrap items-center gap-3">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+                  {{ post.title }}
+                </h1>
+
+                <span
+                  v-if="post.status === 'draft'"
+                  class="inline-flex rounded-full bg-yellow-50 px-3 py-1 text-sm text-yellow-700"
+                >
+                  草稿
+                </span>
+
+                <span
+                  v-else-if="post.status === 'published'"
+                  class="inline-flex rounded-full bg-green-50 px-3 py-1 text-sm text-green-700"
+                >
+                  已发布
+                </span>
+              </div>
 
               <div class="mt-4 flex flex-wrap gap-2 text-sm">
                 <span class="px-3 py-1 rounded-full bg-gray-100 text-gray-700">
@@ -289,6 +308,11 @@ onBeforeUnmount(() => {
                 >
                   无标签
                 </span>
+              </div>
+
+              <div class="mt-4 space-y-1 text-sm text-gray-500">
+                <div>发布时间：{{ formatTime(post.createdAt) }}</div>
+                <div>最近更新：{{ formatTime(post.updatedAt) }}</div>
               </div>
 
               <div class="mt-6 flex flex-wrap gap-3">

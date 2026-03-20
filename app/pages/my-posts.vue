@@ -12,6 +12,8 @@ type PostItem = {
   tags: string | null
   coverImage: string | null
   status: string | null
+  createdAt: number | null
+  updatedAt: number | null
 }
 
 type PageResponse = {
@@ -29,6 +31,11 @@ const splitTags = (raw: string | null | undefined) => {
     .split(/[,，、。;；|｜]/)
     .map(tag => tag.trim())
     .filter(Boolean)
+}
+
+const formatTime = (timestamp: number | null | undefined) => {
+  if (!timestamp) return '暂无时间'
+  return new Date(timestamp).toLocaleString()
 }
 
 const posts = ref<PostItem[]>([])
@@ -284,6 +291,11 @@ onMounted(loadPosts)
                 >
                   无标签
                 </span>
+              </div>
+
+              <div class="mt-4 text-sm text-gray-500 space-y-1">
+                <div>创建时间：{{ formatTime(post.createdAt) }}</div>
+                <div>更新时间：{{ formatTime(post.updatedAt) }}</div>
               </div>
 
               <div class="mt-5 flex gap-3">
