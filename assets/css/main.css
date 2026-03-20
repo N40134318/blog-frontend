@@ -1,3 +1,4 @@
+@import 'highlight.js/styles/github-dark.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -79,10 +80,9 @@
   margin: 1em 0;
   padding: 1rem;
   border-radius: 0.75rem;
-  background: #111827;
-  color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
 }
-
 .markdown-body code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -124,4 +124,10 @@
 .markdown-body th {
   background: #f9fafb;
   font-weight: 600;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  scroll-margin-top: 100px;
 }

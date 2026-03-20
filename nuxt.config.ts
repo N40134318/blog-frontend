@@ -12,6 +12,9 @@ export default defineNuxtConfig({
   vite: {
     server: {
       allowedHosts: ['dev.rainstorm.space']
+    },
+    optimizeDeps: {
+      include: ['markdown-it', 'highlight.js']
     }
   },
   modules: ['@nuxtjs/tailwindcss']
