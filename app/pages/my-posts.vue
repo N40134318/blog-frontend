@@ -122,9 +122,13 @@ onMounted(loadPosts)
         {{ errorMessage }}
       </div>
 
-      <div v-else-if="posts.length === 0" class="bg-white rounded-2xl border border-gray-200 p-8 text-gray-500">
-        你还没有发布文章
-      </div>
+      <EmptyState
+        v-else-if="posts.length === 0"
+        title="你还没有发布文章"
+        description="去创建第一篇文章，开始搭建自己的内容主页。"
+        action-text="去发布文章"
+        action-to="/create-post"
+      />
 
       <div v-else class="grid gap-6">
         <article

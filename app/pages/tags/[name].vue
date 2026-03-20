@@ -76,12 +76,13 @@ watch(() => route.params.name, loadPosts)
         {{ errorMessage }}
       </div>
 
-      <div
+      <EmptyState
         v-else-if="posts.length === 0"
-        class="rounded-2xl border border-gray-200 bg-white p-8 text-gray-500"
-      >
-        该标签下还没有文章
-      </div>
+        title="该标签下还没有文章"
+        description="你可以返回标签页继续浏览其他主题。"
+       action-text="返回标签列表"
+        action-to="/tags"
+      />
 
       <div v-else class="grid gap-6">
         <article

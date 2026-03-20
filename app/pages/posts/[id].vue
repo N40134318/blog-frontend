@@ -242,12 +242,11 @@ onMounted(async () => {
           </p>
 
           <div class="mt-8 space-y-4">
-            <div
+            <EmptyState
               v-if="comments.length === 0"
-              class="text-gray-500"
-            >
-              还没有评论，来发表第一条评论吧。
-            </div>
+              title="还没有评论"
+              description="来发表第一条评论，参与这篇文章的讨论。"
+            />
 
             <article
               v-for="comment in comments"

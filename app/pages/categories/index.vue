@@ -71,12 +71,13 @@ onMounted(loadCategories)
         {{ errorMessage }}
       </div>
 
-      <div
+      <EmptyState
         v-else-if="categories.length === 0"
-        class="rounded-2xl border border-gray-200 bg-white p-8 text-gray-500"
-      >
-        暂无分类数据
-      </div>
+        title="暂无分类数据"
+        description="当前文章还没有形成可展示的分类。"
+        action-text="浏览文章"
+        action-to="/posts"
+      />
 
       <div v-else class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div

@@ -69,12 +69,13 @@ watch(() => route.params.name, loadPosts)
         {{ errorMessage }}
       </div>
 
-      <div
+      <EmptyState
         v-else-if="posts.length === 0"
-        class="rounded-2xl border border-gray-200 bg-white p-8 text-gray-500"
-      >
-        该分类下还没有文章
-      </div>
+        title="该分类下还没有文章"
+        description="你可以返回分类列表，或者先去浏览全部文章。"
+       action-text="返回分类列表"
+        action-to="/categories"
+      />
 
       <div v-else class="grid gap-6">
         <article

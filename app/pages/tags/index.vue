@@ -81,12 +81,13 @@ onMounted(loadTags)
         {{ errorMessage }}
       </div>
 
-      <div
+      <EmptyState
         v-else-if="tags.length === 0"
-        class="rounded-2xl border border-gray-200 bg-white p-8 text-gray-500"
-      >
-        暂无标签数据
-      </div>
+        title="暂无标签数据"
+        description="当前文章还没有形成可展示的标签。"
+        action-text="浏览文章"
+        action-to="/posts"
+      />
 
       <div v-else class="flex flex-wrap gap-3">
         <button

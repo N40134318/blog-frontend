@@ -116,9 +116,13 @@ onMounted(loadPosts)
         {{ errorMessage }}
       </div>
 
-      <div v-else-if="posts.length === 0" class="bg-white rounded-2xl border border-gray-200 p-8 text-gray-500">
-        暂无文章
-      </div>
+      <EmptyState
+        v-else-if="posts.length === 0"
+        title="还没有文章"
+        description="当前还没有可展示的文章内容，稍后再来看看。"
+        action-text="返回首页"
+        action-to="/"
+      />
 
       <div v-else class="grid gap-6">
         <article

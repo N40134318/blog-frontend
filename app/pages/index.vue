@@ -106,12 +106,13 @@ onMounted(loadLatestPosts)
         加载中...
       </div>
 
-      <div
+      <EmptyState
         v-else-if="latestPosts.length === 0"
-        class="rounded-2xl border border-gray-200 bg-white p-8 text-gray-500"
-      >
-        还没有文章，去发布第一篇吧。
-      </div>
+        title="还没有文章"
+        description="当前还没有最新文章内容，去发布第一篇文章吧。"
+        action-text="去发布文章"
+        action-to="/create-post"
+      />
 
       <div v-else class="grid gap-6 md:grid-cols-3">
         <article
