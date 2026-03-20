@@ -9,6 +9,7 @@ type PostItem = {
   category: string | null
   tags: string | null
   coverImage: string | null
+  status: string | null
 }
 
 type PageResponse = {
@@ -38,13 +39,10 @@ const currentUsername = ref('')
 const loadPosts = async () => {
   loading.value = true
   errorMessage.value = ''
-
-  // 关键：每次加载前先清空旧数据
   posts.value = []
   totalPages.value = 0
 
   try {
-    // 先确认当前登录用户是谁
     const me = await api<{ username: string }>('/api/auth/me')
     currentUsername.value = me.username
 
@@ -92,7 +90,7 @@ onMounted(loadPosts)
     <div class="max-w-6xl mx-auto px-4 py-8">
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">我的文章</h1>
-        <p class="mt-2 text-gray-600">管理和查看我发布的内容</p>
+        <p class="mt-2 text-gray-600">管理和查看我的草稿与已发布内容</p>
         <p v-if="currentUsername" class="mt-2 text-sm text-blue-600">
           当前登录用户：{{ currentUsername }}
         </p>
@@ -124,9 +122,9 @@ onMounted(loadPosts)
 
       <EmptyState
         v-else-if="posts.length === 0"
-        title="你还没有发布文章"
-        description="去创建第一篇文章，开始搭建自己的内容主页。"
-        action-text="去发布文章"
+        title="你还没有文章"
+        description="先保存一篇草稿，或者直接发布第一篇文章。"
+        action-text="去写文章"
         action-to="/create-post"
       />
 
@@ -149,11 +147,27 @@ onMounted(loadPosts)
             </div>
 
             <div class="flex-1 p-6">
-              <NuxtLink :to="`/posts/${post.id}`" class="block group">
-                <h2 class="text-2xl font-semibold text-gray-900 group-hover:text-blue-600 transition">
-                  {{ post.title }}
-                </h2>
-              </NuxtLink>
+              <div class="flex flex-wrap items-center gap-3">
+                <NuxtLink :to="`/posts/${post.id}`" class="block group">
+                  <h2 class="text-2xl font-semibold text-gray-900 group-hover:text-blue-600 transition">
+                    {{ post.title }}
+                  </h2>
+                </NuxtLink>
+
+                <span
+                  v-if="post.status === 'draft'"
+                  class="inline-flex rounded-full bg-yellow-50 px-3 py-1 text-xs text-yellow-700"
+                >
+                  草稿
+                </span>
+
+                <span
+                  v-else
+                  class="inline-flex rounded-full bg-green-50 px-3 py-1 text-xs text-green-700"
+                >
+                  已发布
+                </span>
+              </div>
 
               <p class="mt-3 text-gray-600 leading-7">
                 {{ post.summary }}
@@ -185,7 +199,7 @@ onMounted(loadPosts)
                 <span
                   v-else
                   class="px-3 py-1 rounded-full bg-green-50 text-green-700"
-               >
+                >
                   无标签
                 </span>
               </div>

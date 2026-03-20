@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, nextTick } from 'vue'
 import { renderMarkdown, extractToc } from '~/composables/useMarkdown'
 
 const route = useRoute()
@@ -32,6 +32,7 @@ const commentLoading = ref(false)
 const errorMessage = ref('')
 const commentErrorMessage = ref('')
 const currentUsername = ref('')
+const activeTocId = ref('')
 
 const renderedContent = computed(() => {
   return renderMarkdown(post.value?.content || '')
@@ -41,6 +42,80 @@ const tocItems = computed(() => {
   return extractToc(post.value?.content || '')
 })
 
+let observer: IntersectionObserver | null = null
+
+const setupTocObserver = async () => {
+  if (import.meta.server) return
+
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
+
+  await nextTick()
+
+  const headings = Array.from(
+    document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3')
+  ) as HTMLElement[]
+
+  if (headings.length === 0) return
+
+  observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => {
+          return (a.target as HTMLElement).offsetTop - (b.target as HTMLElement).offsetTop
+        })
+
+      if (visible.length > 0) {
+        activeTocId.value = (visible[0].target as HTMLElement).id
+        return
+      }
+
+      const scrollY = window.scrollY + 140
+      let currentId = headings[0].id
+
+      for (const heading of headings) {
+        if (heading.offsetTop <= scrollY) {
+          currentId = heading.id
+        } else {
+          break
+        }
+      }
+
+      activeTocId.value = currentId
+    },
+    {
+      root: null,
+      rootMargin: '-100px 0px -70% 0px',
+      threshold: [0, 1]
+    }
+  )
+
+  headings.forEach((heading) => observer?.observe(heading))
+
+  activeTocId.value = headings[0].id
+}
+
+const scrollToHeading = (id: string) => {
+  if (import.meta.server) return
+
+  const el = document.getElementById(id)
+  if (!el) return
+
+  const topOffset = 96
+  const y = el.getBoundingClientRect().top + window.scrollY - topOffset
+
+  window.history.replaceState(null, '', `#${id}`)
+  window.scrollTo({
+    top: y,
+    behavior: 'smooth'
+  })
+
+  activeTocId.value = id
+}
+
 const loadPost = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -48,6 +123,7 @@ const loadPost = async () => {
   try {
     const data = await api<PostDetail>(`/api/posts/${route.params.id}`)
     post.value = data
+    await setupTocObserver()
   } catch (error: any) {
     errorMessage.value = error?.message || '加载文章失败'
   } finally {
@@ -141,6 +217,13 @@ onMounted(async () => {
   await loadCurrentUser()
   await loadPost()
   await loadComments()
+})
+
+onBeforeUnmount(() => {
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
 })
 </script>
 
@@ -310,19 +393,23 @@ onMounted(async () => {
             </h3>
 
             <nav class="space-y-2">
-              <a
+              <button
                 v-for="item in tocItems"
                 :key="item.id"
-                :href="`#${item.id}`"
+                type="button"
+                @click="scrollToHeading(item.id)"
                 :class="[
-                  'block text-sm text-gray-600 hover:text-blue-600 transition break-words',
-                  item.level === 1 ? 'pl-0 font-medium' : '',
-                  item.level === 2 ? 'pl-4' : '',
-                  item.level === 3 ? 'pl-8 text-gray-500' : ''
+                  'block w-full text-left text-sm transition break-words rounded-lg px-2 py-1.5',
+                  activeTocId === item.id
+                    ? 'bg-blue-50 text-blue-700 font-medium'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50',
+                  item.level === 1 ? 'pl-2' : '',
+                  item.level === 2 ? 'pl-6' : '',
+                  item.level === 3 ? 'pl-10 text-gray-500' : ''
                 ]"
               >
                 {{ item.text }}
-              </a>
+              </button>
             </nav>
           </div>
         </aside>

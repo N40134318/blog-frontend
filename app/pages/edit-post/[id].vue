@@ -31,6 +31,7 @@ const content = ref('')
 const category = ref('')
 const tags = ref('')
 const coverImage = ref('')
+const status = ref<'draft' | 'published'>('draft')
 const loading = ref(true)
 const saving = ref(false)
 const uploading = ref(false)
@@ -55,6 +56,7 @@ const loadPost = async () => {
       category: string | null
       tags: string | null
       coverImage: string | null
+      status: string | null
     }>(`/api/posts/${route.params.id}`)
 
     title.value = data.title
@@ -62,6 +64,7 @@ const loadPost = async () => {
     category.value = data.category || ''
     tags.value = data.tags || ''
     coverImage.value = data.coverImage || ''
+    status.value = data.status === 'published' ? 'published' : 'draft'
   } catch (error: any) {
     errorMessage.value = error?.message || '加载失败'
   } finally {
@@ -106,7 +109,7 @@ const uploadSelectedFile = async () => {
   }
 }
 
-const submit = async () => {
+const submit = async (nextStatus: 'draft' | 'published') => {
   errorMessage.value = ''
 
   if (!title.value.trim()) {
@@ -129,6 +132,7 @@ const submit = async () => {
       category: string | null
       tags: string | null
       coverImage: string | null
+      status: string | null
     }>(`/api/posts/${route.params.id}`, {
       method: 'PUT',
       body: {
@@ -136,13 +140,16 @@ const submit = async () => {
         content: content.value,
         category: category.value,
         tags: tags.value,
-        coverImage: coverImage.value
+        coverImage: coverImage.value,
+        status: nextStatus
       }
     })
 
+    status.value = data.status === 'published' ? 'published' : 'draft'
     await navigateTo(`/posts/${data.id}`)
   } catch (error: any) {
-    errorMessage.value = error?.message || '修改失败'
+    errorMessage.value =
+      error?.message || (nextStatus === 'draft' ? '保存草稿失败' : '发布失败')
   } finally {
     saving.value = false
   }
@@ -156,7 +163,21 @@ onMounted(loadPost)
     <div class="max-w-6xl mx-auto px-4 py-8">
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">编辑文章</h1>
-        <p class="mt-2 text-gray-600">修改 Markdown 文章内容、分类、标签和封面</p>
+        <p class="mt-2 text-gray-600">修改 Markdown 文章内容、分类、标签、封面和发布状态</p>
+        <div class="mt-3">
+          <span
+            v-if="status === 'draft'"
+            class="inline-flex rounded-full bg-yellow-50 px-3 py-1 text-sm text-yellow-700"
+          >
+            当前状态：草稿
+          </span>
+          <span
+            v-else
+            class="inline-flex rounded-full bg-green-50 px-3 py-1 text-sm text-green-700"
+          >
+            当前状态：已发布
+          </span>
+        </div>
       </div>
 
       <div v-if="loading" class="bg-white rounded-2xl border border-gray-200 p-8 text-gray-500">
@@ -266,11 +287,19 @@ onMounted(loadPost)
 
         <div class="flex flex-wrap gap-3 pt-2">
           <button
-            @click="submit"
+            @click="submit('draft')"
+            :disabled="saving"
+            class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {{ saving ? '保存中...' : '保存草稿' }}
+          </button>
+
+          <button
+            @click="submit('published')"
             :disabled="saving"
             class="rounded-lg bg-gray-900 px-5 py-3 text-sm text-white hover:bg-gray-800 disabled:opacity-50"
           >
-            {{ saving ? '保存中...' : '保存修改' }}
+            {{ saving ? '发布中...' : '发布文章' }}
           </button>
 
           <NuxtLink

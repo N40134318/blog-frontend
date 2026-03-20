@@ -79,7 +79,7 @@ const uploadSelectedFile = async () => {
   }
 }
 
-const submit = async () => {
+const submit = async (status: 'draft' | 'published') => {
   if (!title.value.trim()) {
     errorMessage.value = '文章标题不能为空'
     return
@@ -102,6 +102,7 @@ const submit = async () => {
       category: string | null
       tags: string | null
       coverImage: string | null
+      status: string | null
     }>('/api/posts', {
       method: 'POST',
       body: {
@@ -109,11 +110,15 @@ const submit = async () => {
         content: content.value,
         category: category.value,
         tags: tags.value,
-        coverImage: coverImage.value
+        coverImage: coverImage.value,
+        status
       }
     })
 
-    successMessage.value = `发布成功：${data.title}`
+    successMessage.value =
+      status === 'draft'
+        ? `草稿保存成功：${data.title}`
+        : `发布成功：${data.title}`
 
     title.value = ''
     content.value = ''
@@ -124,7 +129,8 @@ const submit = async () => {
     selectedFileName.value = ''
     uploadMessage.value = ''
   } catch (error: any) {
-    errorMessage.value = error?.message || '发布失败'
+    errorMessage.value =
+      error?.message || (status === 'draft' ? '保存草稿失败' : '发布失败')
   } finally {
     submitting.value = false
   }
@@ -235,11 +241,19 @@ const submit = async () => {
 
         <div class="flex flex-wrap gap-3 pt-2">
           <button
-            @click="submit"
+            @click="submit('draft')"
+            :disabled="submitting"
+            class="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {{ submitting ? '保存中...' : '保存草稿' }}
+          </button>
+
+          <button
+            @click="submit('published')"
             :disabled="submitting"
             class="rounded-lg bg-gray-900 px-5 py-3 text-sm text-white hover:bg-gray-800 disabled:opacity-50"
           >
-            {{ submitting ? '发布中...' : '提交发布' }}
+            {{ submitting ? '发布中...' : '发布文章' }}
           </button>
 
           <NuxtLink
