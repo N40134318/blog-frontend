@@ -16,6 +16,13 @@ const escapeHtml = (str: string) => {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const normalizeLang = (lang: string) => {
+  const value = (lang || '').trim().toLowerCase()
+  return value || 'text'
 }
 
 const markdownOptions: any = {
@@ -23,25 +30,44 @@ const markdownOptions: any = {
   linkify: true,
   typographer: true,
   breaks: true,
+
   highlight(str: string, lang: string) {
+    const normalizedLang = normalizeLang(lang)
+    const encodedRawCode = encodeURIComponent(str)
+
     if (lang && hljs.getLanguage(lang)) {
       try {
         const highlighted = hljs.highlight(str, {
           language: lang
         }).value
 
-        return `<pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
+        return `
+<div class="code-block" data-code="${encodedRawCode}">
+  <div class="code-block-header">
+    <button type="button" class="code-copy-btn">复制</button>
+    <span class="code-block-lang">${escapeHtml(normalizedLang)}</span>
+  </div>
+  <pre><code class="hljs language-${escapeHtml(normalizedLang)}">${highlighted}</code></pre>
+</div>
+        `.trim()
       } catch (error) {
         // ignore and fall through
       }
     }
 
-    return `<pre><code class="hljs">${escapeHtml(str)}</code></pre>`
+    return `
+<div class="code-block" data-code="${encodedRawCode}">
+  <div class="code-block-header">
+    <button type="button" class="code-copy-btn">复制</button>
+    <span class="code-block-lang">${escapeHtml(normalizedLang)}</span>
+  </div>
+  <pre><code class="hljs language-${escapeHtml(normalizedLang)}">${escapeHtml(str)}</code></pre>
+</div>
+    `.trim()
   }
 }
 
 const md = new MarkdownIt(markdownOptions)
-
 const renderer = (md as any).renderer
 
 const defaultHeadingOpen =

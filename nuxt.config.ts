@@ -3,12 +3,17 @@ declare const process: {
 }
 
 export default defineNuxtConfig({
+  css: ['@/assets/css/main.css'],
+
   runtimeConfig: {
     public: {
-      appName: process.env.NUXT_PUBLIC_APP_NAME || 'Rainstorm Dev Platform',
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080'
+      appName:
+        process.env.NUXT_PUBLIC_APP_NAME || 'Rainstorm Dev Platform',
+      apiBase:
+        process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080'
     }
   },
+
   vite: {
     server: {
       allowedHosts: ['dev.rainstorm.space']
@@ -17,5 +22,6 @@ export default defineNuxtConfig({
       include: ['markdown-it', 'highlight.js']
     }
   },
+
   modules: ['@nuxtjs/tailwindcss']
 })

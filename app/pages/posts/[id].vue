@@ -52,6 +52,52 @@ const formatTime = (timestamp: number | null | undefined) => {
 
 let observer: IntersectionObserver | null = null
 
+const handleMarkdownClick = async (event: Event) => {
+  const target = event.target as HTMLElement | null
+  if (!target) return
+
+  const button = target.closest('.code-copy-btn') as HTMLButtonElement | null
+  if (!button) return
+
+  const codeBlock = button.closest('.code-block') as HTMLElement | null
+  if (!codeBlock) return
+
+  const rawCode = codeBlock.getAttribute('data-code') || ''
+  const decodedCode = decodeURIComponent(rawCode)
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(decodedCode)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = decodedCode
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+
+    const originalText = '复制'
+    button.textContent = '已复制'
+    button.classList.add('copied')
+
+    window.setTimeout(() => {
+      button.textContent = originalText
+      button.classList.remove('copied')
+    }, 1500)
+  } catch (error) {
+    button.textContent = '复制失败'
+    window.setTimeout(() => {
+      button.textContent = '复制'
+    }, 1500)
+  }
+}
+
+
 const setupTocObserver = async () => {
   if (import.meta.server) return
 
@@ -217,12 +263,16 @@ const splitTags = (raw: string | null | undefined) => {
 }
 
 onMounted(async () => {
+  document.addEventListener('click', handleMarkdownClick)
+
   await loadCurrentUser()
   await loadPost()
   await loadComments()
 })
 
 onBeforeUnmount(() => {
+  document.removeEventListener('click', handleMarkdownClick)
+
   if (observer) {
     observer.disconnect()
     observer = null
@@ -410,30 +460,37 @@ onBeforeUnmount(() => {
         <aside class="block mt-6 lg:mt-0 lg:sticky lg:top-24">
           <div
             v-if="tocItems.length > 0"
-            class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
+            class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden"
           >
-            <h3 class="text-base font-semibold text-gray-900 mb-4">
-              文章目录（{{ tocItems.length }}）
-            </h3>
+            <div class="px-5 pt-5 pb-3 border-b border-gray-100">
+              <h3 class="text-base font-semibold text-gray-900">
+                文章目录（{{ tocItems.length }}）
+              </h3>
+            </div>
 
-            <nav class="space-y-2">
-              <button
-                v-for="item in tocItems"
-                :key="item.id"
-                type="button"
-                @click="scrollToHeading(item.id)"
-                :class="[
-                  'block w-full text-left text-sm transition break-words rounded-lg px-2 py-1.5',
-                  activeTocId === item.id
-                    ? 'bg-blue-50 text-blue-700 font-medium'
-                    : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50',
-                  item.level === 1 ? 'pl-2' : '',
-                  item.level === 2 ? 'pl-6' : '',
-                  item.level === 3 ? 'pl-10 text-gray-500' : ''
-                ]"
-              >
-                {{ item.text }}
-              </button>
+            <nav
+              class="px-3 py-3 overflow-y-auto overscroll-contain"
+              style="max-height: min(420px, calc(100vh - 180px));"
+            >
+              <div class="space-y-2">
+                <button
+                  v-for="item in tocItems"
+                  :key="item.id"
+                  type="button"
+                  @click="scrollToHeading(item.id)"
+                  :class="[
+                    'block w-full text-left text-sm transition break-words rounded-lg px-2 py-1.5',
+                    activeTocId === item.id
+                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50',
+                    item.level === 1 ? 'pl-2' : '',
+                    item.level === 2 ? 'pl-6' : '',
+                    item.level === 3 ? 'pl-10 text-gray-500' : ''
+                  ]"
+                >
+                  {{ item.text }}
+                </button>
+              </div>
             </nav>
           </div>
         </aside>
