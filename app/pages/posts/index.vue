@@ -1,0 +1,221 @@
+<script setup lang="ts">
+const api = useApi()
+
+type PostItem = {
+  id: number
+  title: string
+  summary: string
+  author: string | null
+  category: string | null
+  tags: string | null
+  coverImage: string | null
+}
+
+type PageResponse = {
+  list: PostItem[]
+  page: number
+  totalPages: number
+  totalElements: number
+  size: number
+}
+
+const splitTags = (raw: string | null | undefined) => {
+  return (raw || '')
+    .split(/[,，、。;；|｜]/)
+    .map(tag => tag.trim())
+    .filter(Boolean)
+}
+
+const posts = ref<PostItem[]>([])
+const loading = ref(true)
+const errorMessage = ref('')
+const keyword = ref('')
+const page = ref(0)
+const size = ref(5)
+const totalPages = ref(0)
+
+const loadPosts = async () => {
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const query = new URLSearchParams({
+      page: String(page.value),
+      size: String(size.value),
+      keyword: keyword.value
+    })
+
+    const data = await api<{
+      list: PostItem[]
+      page: number
+      totalPages: number
+      totalElements: number
+      size: number
+    }>(`/api/posts?${query.toString()}`)
+
+    posts.value = data.list || []
+    totalPages.value = data.totalPages || 0
+  } catch (e: any) {
+    errorMessage.value = e?.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+const search = async () => {
+  page.value = 0
+  await loadPosts()
+}
+
+const prevPage = async () => {
+  if (page.value > 0) {
+    page.value--
+    await loadPosts()
+  }
+}
+
+const nextPage = async () => {
+  if (page.value < totalPages.value - 1) {
+    page.value++
+    await loadPosts()
+  }
+}
+
+onMounted(loadPosts)
+</script>
+
+<template>
+  <div class="min-h-screen bg-gray-100">
+    <div class="max-w-6xl mx-auto px-4 py-8">
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">文章列表</h1>
+        <p class="mt-2 text-gray-600">浏览全部文章内容</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div class="flex flex-col md:flex-row gap-3">
+          <input
+            v-model="keyword"
+            placeholder="搜索标题、摘要、正文关键词"
+            class="flex-1 rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            @click="search"
+            class="rounded-xl bg-gray-900 text-white px-5 py-3 hover:bg-gray-800 transition"
+          >
+            搜索
+          </button>
+        </div>
+      </div>
+
+      <div v-if="loading" class="text-gray-500 py-10">
+        加载中...
+      </div>
+
+      <div v-else-if="errorMessage" class="bg-red-50 text-red-600 border border-red-200 rounded-xl p-4">
+        {{ errorMessage }}
+      </div>
+
+      <div v-else-if="posts.length === 0" class="bg-white rounded-2xl border border-gray-200 p-8 text-gray-500">
+        暂无文章
+      </div>
+
+      <div v-else class="grid gap-6">
+        <article
+          v-for="post in posts"
+          :key="post.id"
+          class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
+        >
+          <div class="md:flex">
+            <div
+              v-if="post.coverImage"
+              class="md:w-72 shrink-0 bg-gray-100"
+            >
+              <img
+                :src="post.coverImage"
+                alt="封面图"
+                class="w-full h-56 md:h-full object-cover"
+              />
+            </div>
+
+            <div class="flex-1 p-6">
+              <NuxtLink :to="`/posts/${post.id}`" class="block group">
+                <h2 class="text-2xl font-semibold text-gray-900 group-hover:text-blue-600 transition">
+                  {{ post.title }}
+                </h2>
+              </NuxtLink>
+
+              <p class="mt-3 text-gray-600 leading-7">
+                {{ post.summary }}
+              </p>
+
+              <div class="mt-4 flex flex-wrap gap-2 text-sm">
+                <span class="px-3 py-1 rounded-full bg-gray-100 text-gray-700">
+                  作者：{{ post.author || '未知作者' }}
+                </span>
+
+                <NuxtLink
+                  :to="`/categories/${encodeURIComponent(post.category || '未分类')}`"
+                  class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 transition"
+                >
+                  分类：{{ post.category || '未分类' }}
+                </NuxtLink>
+
+                <template v-if="splitTags(post.tags).length > 0">
+                  <NuxtLink
+                    v-for="tag in splitTags(post.tags)"
+                   :key="tag"
+                    :to="`/tags/${encodeURIComponent(tag)}`"
+                    class="px-3 py-1 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition"
+                  >
+                   # {{ tag }}
+                  </NuxtLink>
+                </template>
+
+                <span
+                  v-else
+                  class="px-3 py-1 rounded-full bg-green-50 text-green-700"
+                >
+                  无标签
+                </span>
+              </div>
+              <div class="mt-5">
+                <NuxtLink
+                  :to="`/posts/${post.id}`"
+                  class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                  查看详情
+                </NuxtLink>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div
+        v-if="totalPages > 0"
+        class="mt-8 flex items-center justify-center gap-3"
+      >
+        <button
+          @click="prevPage"
+          :disabled="page === 0"
+          class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-700 disabled:opacity-50"
+        >
+          上一页
+        </button>
+
+        <div class="text-gray-700">
+          第 {{ page + 1 }} 页 / 共 {{ totalPages }} 页
+        </div>
+
+        <button
+          @click="nextPage"
+          :disabled="page >= totalPages - 1"
+          class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-700 disabled:opacity-50"
+        >
+          下一页
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
