@@ -205,12 +205,13 @@ body {
 
 /* 代码块 */
 .markdown-body .code-block {
+  position: relative;
   margin: 1.25em 0;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
   background: #f8fafc;
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .markdown-body .code-block:hover {
@@ -218,6 +219,9 @@ body {
 }
 
 .markdown-body .code-block-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -225,6 +229,18 @@ body {
   padding: 6px 10px;
   background: #f3f4f6;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.markdown-body .code-block-header::before {
+  content: '';
+  margin-right: auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  box-shadow:
+    16px 0 0 #e5e7eb,
+    32px 0 0 #e5e7eb;
 }
 
 .markdown-body .code-block-lang {
@@ -250,13 +266,20 @@ body {
   padding: 5px 10px;
   border-radius: 999px;
   cursor: pointer;
+  opacity: 0.72;
+  transform: translateY(0);
   transition: all 0.2s ease;
+}
+
+.markdown-body .code-block:hover .code-copy-btn {
+  opacity: 1;
 }
 
 .markdown-body .code-copy-btn:hover {
   background: #f9fafb;
   color: #111827;
   border-color: #9ca3af;
+  transform: translateY(-1px);
 }
 
 .markdown-body .code-copy-btn.copied {
@@ -265,16 +288,38 @@ body {
   border-color: #a7f3d0;
 }
 
-.markdown-body pre {
+.markdown-body .code-block-body {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+}
+
+.markdown-body .code-line-numbers {
+  user-select: none;
+  text-align: right;
+  color: #9ca3af;
+  background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+  padding: 14px 0.75rem 14px 0.9rem;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.markdown-body .code-line-numbers span {
+  display: block;
+  min-width: 2ch;
+}
+
+.markdown-body .code-block-body pre {
   overflow-x: auto;
   margin: 0;
   padding: 14px 16px;
   background: #f8fafc;
   color: #111827;
-  border-radius: 0 0 12px 12px;
+  min-width: 0;
 }
 
-.markdown-body pre code {
+.markdown-body .code-block-body pre code {
   display: block;
   min-width: max-content;
   padding: 0;
@@ -338,7 +383,20 @@ body {
     padding: 0.5rem 0.75rem;
   }
 
-  .markdown-body pre {
+  .markdown-body .code-block-header::before {
+    width: 8px;
+    height: 8px;
+    box-shadow:
+      14px 0 0 #e5e7eb,
+      28px 0 0 #e5e7eb;
+  }
+
+  .markdown-body .code-line-numbers {
+    padding: 0.9rem 0.55rem 0.9rem 0.75rem;
+    font-size: 12px;
+  }
+
+  .markdown-body .code-block-body pre {
     padding: 0.9rem 1rem;
   }
 

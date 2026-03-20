@@ -97,7 +97,6 @@ const handleMarkdownClick = async (event: Event) => {
   }
 }
 
-
 const setupTocObserver = async () => {
   if (import.meta.server) return
 

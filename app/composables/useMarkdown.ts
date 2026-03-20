@@ -25,6 +25,11 @@ const normalizeLang = (lang: string) => {
   return value || 'text'
 }
 
+const buildLineNumbers = (str: string) => {
+  const lineCount = Math.max(1, str.replace(/\n$/, '').split('\n').length)
+  return Array.from({ length: lineCount }, (_, i) => `<span>${i + 1}</span>`).join('')
+}
+
 const markdownOptions: any = {
   html: false,
   linkify: true,
@@ -34,6 +39,7 @@ const markdownOptions: any = {
   highlight(str: string, lang: string) {
     const normalizedLang = normalizeLang(lang)
     const encodedRawCode = encodeURIComponent(str)
+    const lineNumbers = buildLineNumbers(str)
 
     if (lang && hljs.getLanguage(lang)) {
       try {
@@ -47,7 +53,10 @@ const markdownOptions: any = {
     <button type="button" class="code-copy-btn">复制</button>
     <span class="code-block-lang">${escapeHtml(normalizedLang)}</span>
   </div>
-  <pre><code class="hljs language-${escapeHtml(normalizedLang)}">${highlighted}</code></pre>
+  <div class="code-block-body">
+    <div class="code-line-numbers">${lineNumbers}</div>
+    <pre><code class="hljs language-${escapeHtml(normalizedLang)}">${highlighted}</code></pre>
+  </div>
 </div>
         `.trim()
       } catch (error) {
@@ -61,7 +70,10 @@ const markdownOptions: any = {
     <button type="button" class="code-copy-btn">复制</button>
     <span class="code-block-lang">${escapeHtml(normalizedLang)}</span>
   </div>
-  <pre><code class="hljs language-${escapeHtml(normalizedLang)}">${escapeHtml(str)}</code></pre>
+  <div class="code-block-body">
+    <div class="code-line-numbers">${lineNumbers}</div>
+    <pre><code class="hljs language-${escapeHtml(normalizedLang)}">${escapeHtml(str)}</code></pre>
+  </div>
 </div>
     `.trim()
   }
