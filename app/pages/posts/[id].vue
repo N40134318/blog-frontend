@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { renderMarkdown } from '~/composables/useMarkdown'
+
 const route = useRoute()
 const api = useApi()
 
@@ -29,6 +32,10 @@ const commentLoading = ref(false)
 const errorMessage = ref('')
 const commentErrorMessage = ref('')
 const currentUsername = ref('')
+
+const renderedContent = computed(() => {
+  return renderMarkdown(post.value?.content || '')
+})
 
 const loadPost = async () => {
   loading.value = true
@@ -210,11 +217,10 @@ onMounted(async () => {
             </div>
 
             <div class="mt-8 border-t border-gray-200 pt-8">
-              <div class="prose prose-gray max-w-none">
-                <p class="text-gray-700 leading-8 whitespace-pre-wrap">
-                  {{ post.content }}
-                </p>
-              </div>
+              <div
+                class="markdown-body"
+                v-html="renderedContent"
+              ></div>
             </div>
           </div>
         </article>
@@ -268,7 +274,7 @@ onMounted(async () => {
                     {{ formatTime(comment.createdAt) }}
                   </div>
                 </div>
-            
+
                 <button
                   v-if="currentUsername && currentUsername === comment.author"
                   @click="deleteComment(comment.id)"

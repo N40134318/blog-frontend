@@ -1,6 +1,30 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { renderMarkdown } from '~/composables/useMarkdown'
+
 const route = useRoute()
 const api = useApi()
+
+const editorRef = ref<HTMLTextAreaElement | null>(null)
+const previewRef = ref<HTMLDivElement | null>(null)
+
+const syncPreviewScroll = () => {
+  const editor = editorRef.value
+  const preview = previewRef.value
+
+  if (!editor || !preview) return
+
+  const editorScrollRange = editor.scrollHeight - editor.clientHeight
+  const previewScrollRange = preview.scrollHeight - preview.clientHeight
+
+  if (editorScrollRange <= 0 || previewScrollRange <= 0) {
+    preview.scrollTop = 0
+    return
+  }
+
+  const scrollRatio = editor.scrollTop / editorScrollRange
+  preview.scrollTop = scrollRatio * previewScrollRange
+}
 
 const title = ref('')
 const content = ref('')
@@ -14,6 +38,10 @@ const errorMessage = ref('')
 const uploadMessage = ref('')
 const selectedFile = ref<File | null>(null)
 const selectedFileName = ref('')
+
+const previewHtml = computed(() => {
+  return renderMarkdown(content.value)
+})
 
 const loadPost = async () => {
   loading.value = true
@@ -81,6 +109,16 @@ const uploadSelectedFile = async () => {
 const submit = async () => {
   errorMessage.value = ''
 
+  if (!title.value.trim()) {
+    errorMessage.value = '文章标题不能为空'
+    return
+  }
+
+  if (!content.value.trim()) {
+    errorMessage.value = '文章内容不能为空'
+    return
+  }
+
   try {
     saving.value = true
 
@@ -115,10 +153,10 @@ onMounted(loadPost)
 
 <template>
   <div class="min-h-screen bg-gray-100">
-    <div class="max-w-4xl mx-auto px-4 py-8">
+    <div class="max-w-6xl mx-auto px-4 py-8">
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">编辑文章</h1>
-        <p class="mt-2 text-gray-600">修改文章内容、分类、标签和封面</p>
+        <p class="mt-2 text-gray-600">修改 Markdown 文章内容、分类、标签和封面</p>
       </div>
 
       <div v-if="loading" class="bg-white rounded-2xl border border-gray-200 p-8 text-gray-500">
@@ -200,12 +238,30 @@ onMounted(loadPost)
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">文章内容</label>
-          <textarea
-            v-model="content"
-            placeholder="请输入文章内容"
-            class="w-full min-h-[220px] rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-          ></textarea>
+          <label class="block text-sm font-medium text-gray-700 mb-2">文章内容（Markdown）</label>
+
+          <div class="grid gap-6 lg:grid-cols-2 items-stretch">
+            <div class="flex flex-col">
+              <div class="mb-2 text-sm font-medium text-gray-600">编辑区</div>
+              <textarea
+                ref="editorRef"
+                v-model="content"
+                @scroll="syncPreviewScroll"
+                placeholder="请输入 Markdown 内容"
+                class="h-[600px] w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-none bg-white"
+              ></textarea>
+            </div>
+
+            <div class="flex flex-col">
+              <div class="mb-2 text-sm font-medium text-gray-600">预览区</div>
+              <div
+                ref="previewRef"
+                class="h-[600px] overflow-y-auto rounded-xl border border-gray-200 bg-white p-4"
+              >
+                <div class="markdown-body" v-html="previewHtml"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="flex flex-wrap gap-3 pt-2">
