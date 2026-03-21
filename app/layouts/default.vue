@@ -22,24 +22,22 @@ const logout = () => {
           </NuxtLink>
 
           <nav class="hidden md:flex items-center gap-4 text-sm text-gray-600">
-            <NuxtLink to="/">首页</NuxtLink>
-            <NuxtLink to="/about">关于</NuxtLink>
-            <NuxtLink to="/posts">文章</NuxtLink>
-            <NuxtLink to="/categories">分类</NuxtLink>
-            <NuxtLink to="/tags">标签</NuxtLink>
-            <NuxtLink to="/my-posts">我的文章</NuxtLink>
-            <NuxtLink to="/create-post">发布</NuxtLink>
+            <NuxtLink to="/" class="hover:text-blue-600 transition">首页</NuxtLink>
+            <NuxtLink to="/about" class="hover:text-blue-600 transition">关于</NuxtLink>
+            <NuxtLink to="/posts" class="hover:text-blue-600 transition">文章</NuxtLink>
+            <NuxtLink to="/categories" class="hover:text-blue-600 transition">分类</NuxtLink>
+            <NuxtLink to="/tags" class="hover:text-blue-600 transition">标签</NuxtLink>
+
+            <template v-if="token">
+              <NuxtLink to="/my-posts" class="hover:text-blue-600 transition">我的文章</NuxtLink>
+              <NuxtLink to="/create-post" class="hover:text-blue-600 transition">发布</NuxtLink>
+              <NuxtLink to="/dashboard" class="hover:text-blue-600 transition">后台</NuxtLink>
+            </template>
           </nav>
         </div>
 
         <div class="flex items-center gap-2">
           <template v-if="token">
-            <NuxtLink
-              to="/my-posts"
-              class="rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              我的文章
-            </NuxtLink>
             <button
               @click="logout"
               class="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800"
@@ -55,6 +53,7 @@ const logout = () => {
             >
               登录
             </NuxtLink>
+
             <NuxtLink
               to="/register"
               class="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800"

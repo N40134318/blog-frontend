@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, nextTick } from 'vue'
-import { renderMarkdown, extractToc } from '~/composables/useMarkdown'
+import { computed, onBeforeUnmount, nextTick, watch } from 'vue'
+import { renderMarkdown, extractToc, renderMermaid } from '~/composables/useMarkdown'
 
 const route = useRoute()
 const api = useApi()
@@ -40,6 +40,14 @@ const activeTocId = ref('')
 const renderedContent = computed(() => {
   return renderMarkdown(post.value?.content || '')
 })
+
+watch(
+  [renderedContent, loading],
+  async () => {
+    await renderArticleEnhancements()
+  },
+  { immediate: true }
+)
 
 const tocItems = computed(() => {
   return extractToc(post.value?.content || '')
@@ -95,6 +103,16 @@ const handleMarkdownClick = async (event: Event) => {
       button.textContent = '复制'
     }, 1500)
   }
+}
+
+const renderArticleEnhancements = async () => {
+  if (import.meta.server) return
+  if (loading.value || !post.value) return
+
+  await nextTick()
+  await renderMermaid()
+  await nextTick()
+  await setupTocObserver()
 }
 
 const setupTocObserver = async () => {
@@ -176,11 +194,11 @@ const loadPost = async () => {
   try {
     const data = await api<PostDetail>(`/api/posts/${route.params.id}`)
     post.value = data
-    await setupTocObserver()
   } catch (error: any) {
     errorMessage.value = error?.message || '加载文章失败'
   } finally {
     loading.value = false
+    await renderArticleEnhancements()
   }
 }
 
