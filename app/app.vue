@@ -1,9 +1,8 @@
 <script setup lang="ts">
-
-const { loadToken } = useAuth()
+const auth = useAuth()
 
 onMounted(() => {
-  loadToken()
+  auth.loadTokens()
 })
 </script>
 

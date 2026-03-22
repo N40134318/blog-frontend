@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+definePageMeta({
+  middleware: 'auth'
+})
 
+import { computed } from 'vue'
 const api = useApi()
 
 type PostItem = {

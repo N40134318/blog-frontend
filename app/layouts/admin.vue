@@ -1,14 +1,10 @@
 <script setup lang="ts">
-const token = useState<string | null>('token', () => null)
+const auth = useAuth()
 
-if (import.meta.client) {
-  token.value = localStorage.getItem('token')
-}
+const isLoggedIn = computed(() => !!auth.accessToken.value)
 
-const logout = () => {
-  localStorage.removeItem('token')
-  token.value = null
-  window.location.href = `/login?t=${Date.now()}`
+const logout = async () => {
+  await auth.logout()
 }
 </script>
 

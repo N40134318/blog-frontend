@@ -1,6 +1,9 @@
 <script setup lang="ts">
-const api = useApi()
-const token = useState<string | null>('token', () => null)
+import type { ApiResponse } from '~/types/api'
+
+const auth = useAuth()
+const config = useRuntimeConfig()
+const apiBase = config.public.apiBase
 
 const username = ref('')
 const password = ref('')
@@ -22,20 +25,32 @@ const submit = async () => {
     loading.value = true
     errorMessage.value = ''
 
-    const data = await api<{ token: string }>('/api/login', {
-      method: 'POST',
-      body: {
-        username: username.value,
-        password: password.value
+    const res = await $fetch<ApiResponse<{ accessToken: string; refreshToken: string }>>(
+      `${apiBase}/api/login`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: {
+          username: username.value,
+          password: password.value
+        }
       }
-    })
+    )
 
-    localStorage.setItem('token', data.token)
-    token.value = data.token
+    if (res.code !== 200 || !res.data?.accessToken || !res.data?.refreshToken) {
+      throw new Error(res.message || '登录失败')
+    }
 
-    window.location.href = `/my-posts?t=${Date.now()}`
+    auth.setTokens(res.data.accessToken, res.data.refreshToken)
+
+    window.location.href = '/?login=success'
   } catch (error: any) {
-    errorMessage.value = error?.message || '登录失败'
+    errorMessage.value =
+      error?.data?.message ||
+      error?.message ||
+      '登录失败'
   } finally {
     loading.value = false
   }
@@ -68,6 +83,7 @@ const submit = async () => {
             type="password"
             placeholder="请输入密码"
             class="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+            @keyup.enter="submit"
           />
         </div>
 

@@ -1,34 +1,66 @@
 export const useAuth = () => {
-  const token = useState<string | null>('token', () => null)
+    const accessToken = useState<string | null>('accessToken', () => null)
+    const refreshToken = useState<string | null>('refreshToken', () => null)
 
-  const setToken = (t: string) => {
-    token.value = t
-    localStorage.setItem('token', t)
-  }
+    const setTokens = (access: string, refresh: string) => {
+        accessToken.value = access
+        refreshToken.value = refresh
 
-  const loadToken = () => {
-    const t = localStorage.getItem('token')
-    if (t) {
-      token.value = t
+        if (import.meta.client) {
+            localStorage.setItem('accessToken', access)
+            localStorage.setItem('refreshToken', refresh)
+        }
     }
-  }
 
-  const clearToken = () => {
-    token.value = null
-    localStorage.removeItem('token')
-  }
+    const loadTokens = () => {
+        if (!import.meta.client) return
 
-  const logout = () => {
-    token.value = null
-    localStorage.removeItem('token')
-    return navigateTo('/login')
-  }
+        accessToken.value = localStorage.getItem('accessToken')
+        refreshToken.value = localStorage.getItem('refreshToken')
+    }
 
-  return {
-    token,
-    setToken,
-    loadToken,
-    clearToken,
-    logout
-  }
+    const clearTokens = () => {
+        accessToken.value = null
+        refreshToken.value = null
+
+        if (import.meta.client) {
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+            localStorage.removeItem('token')
+        }
+    }
+
+    const logout = async () => {
+        try {
+            const config = useRuntimeConfig()
+            const apiBase = config.public.apiBase
+            const token = import.meta.client ? localStorage.getItem('accessToken') : null
+
+            if (token) {
+                await $fetch(`${apiBase}/api/logout`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                })
+            }
+        } catch {
+            // 忽略后端退出异常
+        } finally {
+            clearTokens()
+
+            if (import.meta.client) {
+                window.location.href = `/login?t=${Date.now()}`
+            }
+        }
+    }
+
+    return {
+        accessToken,
+        refreshToken,
+        setTokens,
+        loadTokens,
+        clearTokens,
+        logout
+    }
 }

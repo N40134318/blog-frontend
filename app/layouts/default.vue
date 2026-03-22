@@ -1,14 +1,10 @@
 <script setup lang="ts">
-const token = useState<string | null>('token', () => null)
+const auth = useAuth()
 
-if (import.meta.client) {
-  token.value = localStorage.getItem('token')
-}
+const isLoggedIn = computed(() => !!auth.accessToken.value)
 
-const logout = () => {
-  localStorage.removeItem('token')
-  token.value = null
-  window.location.href = `/login?t=${Date.now()}`
+const logout = async () => {
+  await auth.logout()
 }
 </script>
 
@@ -28,7 +24,7 @@ const logout = () => {
             <NuxtLink to="/categories" class="hover:text-blue-600 transition">分类</NuxtLink>
             <NuxtLink to="/tags" class="hover:text-blue-600 transition">标签</NuxtLink>
 
-            <template v-if="token">
+            <template v-if="isLoggedIn">
               <NuxtLink to="/my-posts" class="hover:text-blue-600 transition">我的文章</NuxtLink>
               <NuxtLink to="/create-post" class="hover:text-blue-600 transition">发布</NuxtLink>
               <NuxtLink to="/dashboard" class="hover:text-blue-600 transition">后台</NuxtLink>
@@ -37,7 +33,7 @@ const logout = () => {
         </div>
 
         <div class="flex items-center gap-2">
-          <template v-if="token">
+          <template v-if="isLoggedIn">
             <button
               @click="logout"
               class="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800"
@@ -66,7 +62,7 @@ const logout = () => {
     </header>
 
     <main>
-      <NuxtPage />
+      <slot />
     </main>
   </div>
 </template>

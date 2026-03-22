@@ -1,10 +1,9 @@
-export default defineNuxtRouteMiddleware(() => {
-  if (import.meta.server) return
+export default defineNuxtRouteMiddleware((to) => {
+    if (import.meta.server) return
 
-  const token = localStorage.getItem('token')
-  const route = useRoute()
+    const accessToken = localStorage.getItem('accessToken')
 
-  if (!token) {
-    return navigateTo(`/login?redirect=${encodeURIComponent(route.fullPath)}`)
-  }
+    if (!accessToken) {
+        return navigateTo(`/login?redirect=${encodeURIComponent(to.fullPath)}`)
+    }
 })
