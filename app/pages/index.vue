@@ -140,7 +140,8 @@ const secondaryCta = computed(() => {
             <p class="mt-6 max-w-3xl text-lg leading-8 text-gray-600">
               这是一个以内容发布为核心、以工程化演进为主线的博客项目。
               当前已经完成 JWT 登录鉴权、refresh 自动续期、admin / user 权限分级、
-              后台全站文章管理、Markdown 阅读增强、分类标签与分页搜索等核心能力。
+              后台全站文章管理、评论审核、Flyway 数据迁移规范化、
+              Markdown 阅读增强、分类标签与分页搜索等核心能力。
             </p>
 
             <div class="mt-8 flex flex-wrap gap-4">
@@ -164,6 +165,8 @@ const secondaryCta = computed(() => {
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Refresh 续期</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Admin / User</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">全站文章管理</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">评论审核</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Flyway 迁移</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Markdown 渲染</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">目录 TOC</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">代码高亮复制</span>
@@ -191,8 +194,8 @@ const secondaryCta = computed(() => {
               <div class="text-sm text-gray-500">当前阶段设计</div>
               <ul class="mt-4 space-y-2 text-sm text-gray-700">
                 <li>• 前后端分离，接口职责清晰</li>
-                <li>• 已形成基础后台与权限体系</li>
-                <li>• 适合继续扩展评论与统计能力</li>
+                <li>• 已形成基础后台、权限与审核体系</li>
+                <li>• 适合继续扩展统计、治理与运维能力</li>
               </ul>
             </div>
           </div>
@@ -234,12 +237,19 @@ const secondaryCta = computed(() => {
           :key="post.id"
           class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          <div v-if="post.coverImage" class="bg-gray-100">
+          <div class="h-52 bg-gray-100 flex items-center justify-center overflow-hidden">
             <img
+              v-if="post.coverImage"
               :src="post.coverImage"
               alt="封面图"
-              class="h-52 w-full object-cover"
+              class="h-full w-full object-cover"
             />
+            <div
+              v-else
+              class="flex h-full w-full items-center justify-center text-sm text-gray-400"
+            >
+              暂无封面
+            </div>
           </div>
 
           <div class="p-5">
@@ -254,7 +264,7 @@ const secondaryCta = computed(() => {
             </div>
 
             <NuxtLink :to="`/posts/${post.id}`" class="block">
-              <h3 class="text-xl font-semibold text-gray-900 hover:text-blue-600 transition line-clamp-2">
+              <h3 class="text-xl font-semibold text-gray-900 hover:text-blue-600 transition line-clamp-2 min-h-[3.5rem]">
                 {{ post.title }}
               </h3>
             </NuxtLink>
@@ -263,7 +273,7 @@ const secondaryCta = computed(() => {
               {{ post.summary }}
             </p>
 
-            <div class="mt-4 flex flex-wrap gap-2 text-xs">
+            <div class="mt-4 flex min-h-[2rem] flex-wrap gap-2 text-xs">
               <template v-for="tag in splitTags(post.tags).slice(0, 3)" :key="tag">
                 <NuxtLink
                   :to="`/tags/${encodeURIComponent(tag)}`"
@@ -378,7 +388,7 @@ const secondaryCta = computed(() => {
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h3 class="text-lg font-semibold text-gray-900">后台管理</h3>
           <p class="mt-3 text-sm leading-6 text-gray-600">
-            管理员已可查看全站文章、切换状态、删除内容，并通过后台总览查看全站统计信息。
+            管理员已可查看全站文章、评论审核、状态切换、删除内容，并通过后台总览查看全站统计信息。
           </p>
         </div>
 
@@ -410,21 +420,21 @@ const secondaryCta = computed(() => {
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <div class="text-lg font-semibold text-gray-900">内容层</div>
             <p class="mt-3 text-sm leading-6 text-gray-600">
-              已完成文章发布、编辑、删除、分类、标签、搜索、分页与草稿 / 发布状态管理。
+              已完成文章发布、编辑、删除、分类、标签、搜索、分页、草稿 / 发布管理，以及评论状态流转。
             </p>
           </div>
 
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <div class="text-lg font-semibold text-gray-900">管理层</div>
             <p class="mt-3 text-sm leading-6 text-gray-600">
-              admin 已具备全站文章列表、状态切换、删除与全站统计总览能力，形成基础后台骨架。
+              admin 已具备全站文章管理、评论隐藏恢复删除、全站统计与后台导航骨架。
             </p>
           </div>
 
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
-            <div class="text-lg font-semibold text-gray-900">下一阶段</div>
+            <div class="text-lg font-semibold text-gray-900">数据层</div>
             <p class="mt-3 text-sm leading-6 text-gray-600">
-              后续将继续扩展评论管理、评论审核、统计页、SSR 鉴权优化与更细颗粒度角色权限体系。
+              已接入 Flyway 数据迁移，完成 role 规范化与 comment.status 演进，后续结构升级更可控。
             </p>
           </div>
         </div>
@@ -436,7 +446,7 @@ const secondaryCta = computed(() => {
       <div class="rounded-3xl bg-gray-900 px-8 py-12 text-center text-white">
         <h2 class="text-2xl md:text-3xl font-bold">准备继续扩展这个博客系统了吗？</h2>
         <p class="mt-3 text-gray-300">
-          现在它已经不仅能发文章，也具备了认证、权限、后台管理与内容组织的系统基础。
+          现在它已经不仅能发文章，也具备了认证、权限、后台管理、评论审核与数据迁移规范化的系统基础。
         </p>
 
         <div class="mt-8 flex flex-wrap justify-center gap-4">
