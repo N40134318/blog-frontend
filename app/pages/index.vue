@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const api = useApi()
+const auth = useAuth()
 
 type PostItem = {
   id: number
@@ -24,6 +25,14 @@ type PostListResponse = {
 const latestPosts = ref<PostItem[]>([])
 const loading = ref(true)
 const totalPosts = ref(0)
+
+onMounted(() => {
+  auth.loadTokens()
+  loadLatestPosts()
+})
+
+const isLoggedIn = computed(() => !!auth.accessToken.value)
+const isAdmin = computed(() => auth.role.value === 'admin')
 
 const splitTags = (raw: string | null | undefined) => {
   return (raw || '')
@@ -90,7 +99,26 @@ const latestUpdatedText = computed(() => {
   return formatTime(latest)
 })
 
-onMounted(loadLatestPosts)
+const secondaryCta = computed(() => {
+  if (isAdmin.value) {
+    return {
+      to: '/dashboard',
+      text: '进入后台'
+    }
+  }
+
+  if (isLoggedIn.value) {
+    return {
+      to: '/my-posts',
+      text: '我的文章'
+    }
+  }
+
+  return {
+    to: '/posts',
+    text: '浏览文章'
+  }
+})
 </script>
 
 <template>
@@ -98,10 +126,10 @@ onMounted(loadLatestPosts)
     <!-- Hero -->
     <section class="border-b border-gray-200 bg-white">
       <div class="max-w-6xl mx-auto px-4 py-14 md:py-20">
-        <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
+        <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
           <div>
             <div class="inline-flex rounded-full bg-blue-50 px-4 py-1 text-sm text-blue-700">
-              Rainstorm Blog
+              Rainstorm Blog / Engineering Content System
             </div>
 
             <h1 class="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-gray-900 leading-tight">
@@ -110,40 +138,41 @@ onMounted(loadLatestPosts)
             </h1>
 
             <p class="mt-6 max-w-3xl text-lg leading-8 text-gray-600">
-              记录开发、部署、后端接口、前端交互与内容组织实践。
-              当前已经具备登录鉴权、文章管理、Markdown 渲染、评论系统、封面上传、
-              分类标签、分页搜索、草稿发布、目录导航与代码块增强等完整能力。
+              这是一个以内容发布为核心、以工程化演进为主线的博客项目。
+              当前已经完成 JWT 登录鉴权、refresh 自动续期、admin / user 权限分级、
+              后台全站文章管理、Markdown 阅读增强、分类标签与分页搜索等核心能力。
             </p>
 
             <div class="mt-8 flex flex-wrap gap-4">
               <NuxtLink
-                to="/posts"
+                to="/create-post"
                 class="rounded-xl bg-gray-900 px-6 py-3 text-white hover:bg-gray-800 transition"
               >
-                浏览文章
+                开始写作
               </NuxtLink>
 
               <NuxtLink
-                to="/create-post"
+                :to="secondaryCta.to"
                 class="rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-700 hover:bg-gray-50 transition"
               >
-                开始写作
+                {{ secondaryCta.text }}
               </NuxtLink>
             </div>
 
             <div class="mt-10 flex flex-wrap gap-3 text-sm">
-              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">JWT 登录鉴权</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">JWT 鉴权</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Refresh 续期</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Admin / User</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">全站文章管理</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Markdown 渲染</span>
-              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">代码高亮复制</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">目录 TOC</span>
-              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">草稿 / 发布</span>
-              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">评论系统</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">代码高亮复制</span>
             </div>
           </div>
 
           <div class="grid gap-4">
             <div class="rounded-2xl border border-gray-200 bg-gray-900 p-6 text-white shadow-sm">
-              <div class="text-sm text-gray-300">内容概览</div>
+              <div class="text-sm text-gray-300">公开内容概览</div>
               <div class="mt-4 text-3xl font-bold">{{ totalPosts }}</div>
               <div class="mt-2 text-sm text-gray-400">当前已公开文章总数</div>
             </div>
@@ -154,16 +183,16 @@ onMounted(loadLatestPosts)
                 {{ latestUpdatedText }}
               </div>
               <div class="mt-2 text-sm text-gray-600">
-                首页数据会自动读取最新文章内容进行展示
+                首页数据由最新公开文章自动汇总生成
               </div>
             </div>
 
             <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div class="text-sm text-gray-500">当前阶段特点</div>
+              <div class="text-sm text-gray-500">当前阶段设计</div>
               <ul class="mt-4 space-y-2 text-sm text-gray-700">
-                <li>• 前后端分离</li>
-                <li>• Markdown 文章阅读体验已成型</li>
-                <li>• 适合继续扩展后台与内容体系</li>
+                <li>• 前后端分离，接口职责清晰</li>
+                <li>• 已形成基础后台与权限体系</li>
+                <li>• 适合继续扩展评论与统计能力</li>
               </ul>
             </div>
           </div>
@@ -176,7 +205,7 @@ onMounted(loadLatestPosts)
       <div class="mb-8 flex items-end justify-between gap-4">
         <div>
           <h2 class="text-2xl md:text-3xl font-bold text-gray-900">最新文章</h2>
-          <p class="mt-2 text-gray-600">最近发布的内容预览与阅读入口</p>
+          <p class="mt-2 text-gray-600">最近发布的公开内容与阅读入口</p>
         </div>
 
         <NuxtLink
@@ -269,7 +298,7 @@ onMounted(loadLatestPosts)
           <div>
             <div class="mb-6">
               <h2 class="text-2xl md:text-3xl font-bold text-gray-900">分类速览</h2>
-              <p class="mt-2 text-gray-600">从最新内容中提取的分类分布</p>
+              <p class="mt-2 text-gray-600">从最新公开内容中提取的分类分布</p>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -324,50 +353,90 @@ onMounted(loadLatestPosts)
       </div>
     </section>
 
-    <!-- 项目能力 -->
+    <!-- 当前系统能力 -->
     <section class="max-w-6xl mx-auto px-4 py-14">
       <div class="mb-8">
-        <h2 class="text-2xl md:text-3xl font-bold text-gray-900">项目能力</h2>
-        <p class="mt-2 text-gray-600">当前博客系统已经具备的核心功能</p>
+        <h2 class="text-2xl md:text-3xl font-bold text-gray-900">当前系统能力</h2>
+        <p class="mt-2 text-gray-600">项目现阶段已经完成的核心设计与能力模块</p>
       </div>
 
       <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-semibold text-gray-900">认证鉴权</h3>
+          <h3 class="text-lg font-semibold text-gray-900">认证体系</h3>
           <p class="mt-3 text-sm leading-6 text-gray-600">
-            支持注册、登录、JWT 鉴权、登录态持久化，以及基于当前用户的接口权限判断。
+            已完成注册、登录、JWT accessToken、refreshToken 自动续期，以及 logout 失效控制。
           </p>
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-semibold text-gray-900">文章系统</h3>
+          <h3 class="text-lg font-semibold text-gray-900">权限分级</h3>
           <p class="mt-3 text-sm leading-6 text-gray-600">
-            支持文章发布、编辑、删除、详情展示、作者关联、我的文章，以及封面图展示。
+            已完成 admin / user 角色分级，支持前端菜单、页面中间件与后端接口三级权限控制。
           </p>
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-semibold text-gray-900">内容组织</h3>
+          <h3 class="text-lg font-semibold text-gray-900">后台管理</h3>
           <p class="mt-3 text-sm leading-6 text-gray-600">
-            支持分类、标签、关键词搜索、分页展示，便于继续扩展分类页、标签页与推荐模块。
+            管理员已可查看全站文章、切换状态、删除内容，并通过后台总览查看全站统计信息。
           </p>
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h3 class="text-lg font-semibold text-gray-900">阅读体验</h3>
           <p class="mt-3 text-sm leading-6 text-gray-600">
-            已具备 Markdown 渲染、目录导航、代码高亮、语言标签、代码复制等增强能力。
+            已具备 Markdown 渲染、目录导航、代码高亮、语言标签、代码复制与内容组织能力。
           </p>
         </div>
       </div>
     </section>
 
+    <!-- 系统架构 / 演进路线 -->
+    <section class="bg-white border-y border-gray-200">
+      <div class="max-w-6xl mx-auto px-4 py-14">
+        <div class="mb-8">
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900">系统架构 / 演进路线</h2>
+          <p class="mt-2 text-gray-600">从博客页面到工程化内容系统的当前结构与下一步方向</p>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+            <div class="text-lg font-semibold text-gray-900">认证层</div>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              采用 JWT accessToken + refreshToken 方案，前端自动续期，后端通过 tokenVersion 控制失效。
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+            <div class="text-lg font-semibold text-gray-900">内容层</div>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              已完成文章发布、编辑、删除、分类、标签、搜索、分页与草稿 / 发布状态管理。
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+            <div class="text-lg font-semibold text-gray-900">管理层</div>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              admin 已具备全站文章列表、状态切换、删除与全站统计总览能力，形成基础后台骨架。
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
+            <div class="text-lg font-semibold text-gray-900">下一阶段</div>
+            <p class="mt-3 text-sm leading-6 text-gray-600">
+              后续将继续扩展评论管理、评论审核、统计页、SSR 鉴权优化与更细颗粒度角色权限体系。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA -->
-    <section class="max-w-6xl mx-auto px-4 pb-14">
+    <section class="max-w-6xl mx-auto px-4 pb-14 pt-14">
       <div class="rounded-3xl bg-gray-900 px-8 py-12 text-center text-white">
-        <h2 class="text-2xl md:text-3xl font-bold">准备好继续扩展这个博客系统了吗？</h2>
+        <h2 class="text-2xl md:text-3xl font-bold">准备继续扩展这个博客系统了吗？</h2>
         <p class="mt-3 text-gray-300">
-          现在它已经不仅能发文章，也开始具备了工程化博客应有的阅读体验和内容组织能力。
+          现在它已经不仅能发文章，也具备了认证、权限、后台管理与内容组织的系统基础。
         </p>
 
         <div class="mt-8 flex flex-wrap justify-center gap-4">
@@ -379,10 +448,10 @@ onMounted(loadLatestPosts)
           </NuxtLink>
 
           <NuxtLink
-            to="/posts"
+            :to="secondaryCta.to"
             class="rounded-xl border border-gray-600 px-6 py-3 text-white hover:bg-gray-800 transition"
           >
-            继续阅读内容
+            {{ secondaryCta.text }}
           </NuxtLink>
         </div>
       </div>
