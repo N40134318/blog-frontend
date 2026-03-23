@@ -4,6 +4,7 @@ import { renderMarkdown, extractToc, renderMermaid } from '~/composables/useMark
 
 const route = useRoute()
 const api = useApi()
+const auth = useAuth()
 
 type PostDetail = {
   id: number
@@ -41,17 +42,22 @@ const renderedContent = computed(() => {
   return renderMarkdown(post.value?.content || '')
 })
 
-watch(
-  [renderedContent, loading],
-  async () => {
-    await renderArticleEnhancements()
-  },
-  { immediate: true }
-)
-
 const tocItems = computed(() => {
   return extractToc(post.value?.content || '')
 })
+
+const isLoggedIn = computed(() => !!auth.accessToken.value)
+const isAdmin = computed(() => auth.role.value === 'admin')
+
+const canManagePost = computed(() => {
+  if (!post.value || !currentUsername.value) return false
+  return currentUsername.value === post.value.author || isAdmin.value
+})
+
+const canDeleteComment = (comment: CommentItem) => {
+  if (!currentUsername.value) return false
+  return currentUsername.value === comment.author || isAdmin.value
+}
 
 const formatTime = (timestamp: number | null | undefined) => {
   if (!timestamp) return '暂无时间'
@@ -105,16 +111,6 @@ const handleMarkdownClick = async (event: Event) => {
   }
 }
 
-const renderArticleEnhancements = async () => {
-  if (import.meta.server) return
-  if (loading.value || !post.value) return
-
-  await nextTick()
-  await renderMermaid()
-  await nextTick()
-  await setupTocObserver()
-}
-
 const setupTocObserver = async () => {
   if (import.meta.server) return
 
@@ -165,9 +161,26 @@ const setupTocObserver = async () => {
   )
 
   headings.forEach((heading) => observer?.observe(heading))
-
   activeTocId.value = headings[0].id
 }
+
+const renderArticleEnhancements = async () => {
+  if (import.meta.server) return
+  if (loading.value || !post.value) return
+
+  await nextTick()
+  await renderMermaid()
+  await nextTick()
+  await setupTocObserver()
+}
+
+watch(
+  [renderedContent, loading],
+  async () => {
+    await renderArticleEnhancements()
+  },
+  { immediate: true }
+)
 
 const scrollToHeading = (id: string) => {
   if (import.meta.server) return
@@ -213,7 +226,8 @@ const loadComments = async () => {
 
 const loadCurrentUser = async () => {
   try {
-    const data = await api<{ username: string }>('/api/auth/me')
+    auth.loadTokens()
+    const data = await api<{ username: string; role?: string }>('/api/auth/me')
     currentUsername.value = data.username
   } catch (error) {
     currentUsername.value = ''
@@ -221,6 +235,11 @@ const loadCurrentUser = async () => {
 }
 
 const submitComment = async () => {
+  if (!isLoggedIn.value) {
+    commentErrorMessage.value = '请先登录后再发表评论'
+    return
+  }
+
   if (!commentContent.value.trim()) {
     commentErrorMessage.value = '评论内容不能为空'
     return
@@ -247,6 +266,10 @@ const submitComment = async () => {
 }
 
 const deleteComment = async (commentId: number) => {
+  if (!confirm('确定要删除这条评论吗？')) {
+    return
+  }
+
   try {
     await api(`/api/comments/${commentId}`, {
       method: 'DELETE'
@@ -266,6 +289,12 @@ const deletePost = async () => {
     await api(`/api/posts/${route.params.id}`, {
       method: 'DELETE'
     })
+
+    if (isAdmin.value) {
+      await navigateTo('/dashboard/posts')
+      return
+    }
+
     await navigateTo('/my-posts')
   } catch (error: any) {
     errorMessage.value = error?.message || '删除文章失败'
@@ -382,7 +411,7 @@ onBeforeUnmount(() => {
                 <div>最近更新：{{ formatTime(post.updatedAt) }}</div>
               </div>
 
-              <div class="mt-6 flex flex-wrap gap-3">
+              <div v-if="canManagePost" class="mt-6 flex flex-wrap gap-3">
                 <NuxtLink
                   :to="`/edit-post/${post.id}`"
                   class="inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 transition"
@@ -410,8 +439,8 @@ onBeforeUnmount(() => {
           <section class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8">
             <h2 class="text-2xl font-semibold text-gray-900 mb-6">评论区</h2>
 
-            <div class="space-y-3">
-              <textarea
+          <div v-if="isLoggedIn" class="space-y-3">
+            <textarea
                 v-model="commentContent"
                 placeholder="写下你的评论"
                 class="w-full min-h-[120px] rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
@@ -423,6 +452,22 @@ onBeforeUnmount(() => {
               >
                 {{ commentLoading ? '提交中...' : '发表评论' }}
               </button>
+            </div>
+
+            <div
+            v-else
+            class="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-5"
+            >
+              <div class="text-sm text-gray-700">登录后即可参与评论</div>
+              <p class="mt-2 text-sm text-gray-500">
+                你可以先登录账号，再对这篇文章发表看法。
+              </p>
+              <NuxtLink
+                to="/login"
+                class="mt-4 inline-flex rounded-lg bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 transition"
+              >
+                去登录
+              </NuxtLink>
             </div>
 
             <p v-if="commentErrorMessage" class="mt-3 text-red-600">
@@ -443,11 +488,19 @@ onBeforeUnmount(() => {
               >
                 <div class="flex items-start justify-between gap-4">
                   <div>
-                    <div class="text-sm font-medium text-gray-900">
-                      {{ comment.author }}
+                    <div class="text-sm font-medium text-gray-900 flex flex-wrap items-center gap-2">
+                      <span>{{ comment.author }}</span>
+
+                      <span
+                        v-if="post?.author && comment.author === post.author"
+                        class="rounded-full bg-purple-50 px-2 py-0.5 text-xs text-purple-700"
+                      >
+                        作者
+                      </span>
+
                       <span
                         v-if="currentUsername && currentUsername === comment.author"
-                        class="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600"
+                        class="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-600"
                       >
                         我的评论
                       </span>
@@ -458,11 +511,11 @@ onBeforeUnmount(() => {
                   </div>
 
                   <button
-                    v-if="currentUsername && currentUsername === comment.author"
+                    v-if="canDeleteComment(comment)"
                     @click="deleteComment(comment.id)"
                     class="text-sm text-red-600 hover:text-red-700"
-                  >
-                    删除评论
+                    >
+                    {{ currentUsername === comment.author ? '删除评论' : '管理删除' }}
                   </button>
                 </div>
 

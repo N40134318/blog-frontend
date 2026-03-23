@@ -4,6 +4,7 @@ declare const process: {
 
 export default defineNuxtConfig({
     css: ['@/assets/css/main.css'],
+
     runtimeConfig: {
         public: {
             appName:
@@ -12,6 +13,17 @@ export default defineNuxtConfig({
                 process.env.NUXT_PUBLIC_API_BASE || 'https://dev.rainstorm.space'
         }
     },
+
+    routeRules: {
+        '/dashboard': { ssr: false },
+        '/dashboard/**': { ssr: false },
+        '/my-posts': { ssr: false },
+        '/create-post': { ssr: false },
+        '/edit-post/**': { ssr: false },
+        '/login': { ssr: false },
+        '/register': { ssr: false }
+    },
+
     vite: {
         server: {
             allowedHosts: ['dev.rainstorm.space']
@@ -20,5 +32,6 @@ export default defineNuxtConfig({
             include: ['markdown-it', 'highlight.js']
         }
     },
+
     modules: ['@nuxtjs/tailwindcss']
 })

@@ -3,15 +3,20 @@ export const useAuth = () => {
     const refreshToken = useState<string | null>('refreshToken', () => null)
     const role = useState<string | null>('role', () => null)
 
-    const setTokens = (access: string, refresh: string, userRole: string) => {
+    const setTokens = (access: string, refresh: string, nextRole?: string | null) => {
         accessToken.value = access
         refreshToken.value = refresh
-        role.value = userRole
+        role.value = nextRole || null
 
         if (import.meta.client) {
             localStorage.setItem('accessToken', access)
             localStorage.setItem('refreshToken', refresh)
-            localStorage.setItem('role', userRole)
+
+            if (nextRole) {
+                localStorage.setItem('role', nextRole)
+            } else {
+                localStorage.removeItem('role')
+            }
         }
     }
 
@@ -54,7 +59,6 @@ export const useAuth = () => {
             // 忽略后端退出异常
         } finally {
             clearTokens()
-
             if (import.meta.client) {
                 window.location.href = `/login?t=${Date.now()}`
             }

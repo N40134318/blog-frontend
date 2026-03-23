@@ -37,6 +37,14 @@ const logout = async () => {
           </NuxtLink>
 
           <NuxtLink
+            to="/dashboard/comments"
+            class="block rounded-xl px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition"
+            active-class="bg-gray-900 text-white hover:bg-gray-900"
+          >
+            评论管理
+          </NuxtLink>
+
+          <NuxtLink
             to="/create-post"
             class="block rounded-xl px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 transition"
           >
@@ -74,16 +82,20 @@ const logout = async () => {
             <div>
               <h1 class="text-lg font-semibold text-gray-900">
                 {{
-                  $route.path.startsWith('/dashboard/posts')
-                    ? '文章管理'
-                    : '总览'
+                  $route.path.startsWith('/dashboard/comments')
+                    ? '评论管理'
+                    : $route.path.startsWith('/dashboard/posts')
+                      ? '文章管理'
+                      : '总览'
                 }}
               </h1>
               <p class="text-sm text-gray-500">
                 {{
-                  $route.path.startsWith('/dashboard/posts')
-                    ? '管理草稿与已发布文章'
-                    : '查看你的内容数据与统计'
+                  $route.path.startsWith('/dashboard/comments')
+                    ? '查看和清理全站评论内容'
+                    : $route.path.startsWith('/dashboard/posts')
+                      ? '管理草稿与已发布文章'
+                      : '查看你的内容数据与统计'
                 }}
               </p>
             </div>
