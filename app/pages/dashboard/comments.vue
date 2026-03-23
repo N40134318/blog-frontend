@@ -6,6 +6,8 @@ definePageMeta({
 
 const api = useApi()
 
+type CommentStatus = 'visible' | 'hidden'
+
 type CommentItem = {
   id: number
   postId: number
@@ -13,6 +15,7 @@ type CommentItem = {
   author: string
   content: string
   createdAt: number
+  status: CommentStatus
 }
 
 type PageResponse = {
@@ -32,6 +35,7 @@ const size = ref(10)
 const totalPages = ref(0)
 const totalElements = ref(0)
 const deleteLoadingId = ref<number | null>(null)
+const statusLoadingId = ref<number | null>(null)
 
 const formatTime = (timestamp: number | null | undefined) => {
   if (!timestamp) return '暂无时间'
@@ -116,6 +120,37 @@ const deleteComment = async (comment: CommentItem) => {
   }
 }
 
+const toggleStatus = async (comment: CommentItem) => {
+  const isVisible = comment.status === 'visible'
+  const actionText = isVisible ? '隐藏' : '恢复'
+  const endpoint = isVisible
+    ? `/api/admin/comments/${comment.id}/hide`
+    : `/api/admin/comments/${comment.id}/restore`
+
+  const preview =
+    comment.content.length > 30
+      ? `${comment.content.slice(0, 30)}...`
+      : comment.content
+
+  if (!confirm(`确定要${actionText}评论「${preview}」吗？`)) {
+    return
+  }
+
+  try {
+    statusLoadingId.value = comment.id
+
+    await api(endpoint, {
+      method: 'PUT'
+    })
+
+    await loadComments()
+  } catch (error: any) {
+    alert(error?.message || `${actionText}评论失败`)
+  } finally {
+    statusLoadingId.value = null
+  }
+}
+
 onMounted(loadComments)
 </script>
 
@@ -133,7 +168,7 @@ onMounted(loadComments)
           </h1>
 
           <p class="mt-3 max-w-2xl text-gray-600 leading-7">
-            统一查看全站评论内容，支持搜索、分页和删除，适合管理员进行内容审核与清理。
+            统一查看全站评论内容，支持搜索、分页、隐藏恢复和删除，适合管理员进行内容审核与清理。
           </p>
         </div>
 
@@ -228,6 +263,20 @@ onMounted(loadComments)
                 作者：{{ comment.author }}
               </span>
 
+              <span
+                v-if="comment.status === 'visible'"
+                class="rounded-full bg-green-50 px-3 py-1 text-green-700"
+              >
+                可见
+              </span>
+
+              <span
+                v-else
+                class="rounded-full bg-yellow-50 px-3 py-1 text-yellow-700"
+              >
+                已隐藏
+              </span>
+
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-600">
                 {{ formatTime(comment.createdAt) }}
               </span>
@@ -246,12 +295,31 @@ onMounted(loadComments)
               </div>
             </div>
 
-            <p class="mt-4 whitespace-pre-wrap break-words text-gray-800 leading-7">
+            <p
+              :class="[
+                'mt-4 whitespace-pre-wrap break-words leading-7',
+                comment.status === 'hidden' ? 'text-gray-400' : 'text-gray-800'
+              ]"
+            >
               {{ comment.content }}
             </p>
           </div>
 
-          <div class="flex shrink-0 gap-3">
+          <div class="flex shrink-0 gap-3 flex-wrap">
+            <button
+              @click="toggleStatus(comment)"
+              :disabled="statusLoadingId === comment.id"
+              class="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm text-blue-700 hover:bg-blue-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{
+                statusLoadingId === comment.id
+                  ? '处理中...'
+                  : comment.status === 'visible'
+                    ? '隐藏评论'
+                    : '恢复评论'
+              }}
+            </button>
+
             <button
               @click="deleteComment(comment)"
               :disabled="deleteLoadingId === comment.id"
