@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  middleware: 'auth',
+  middleware: ['auth', 'admin'],
   layout: 'admin'
 })
 
@@ -88,7 +88,7 @@ const loadPosts = async () => {
       keyword: keyword.value
     })
 
-    const data = await api<PageResponse>(`/api/posts/my?${query.toString()}`)
+    const data = await api<PageResponse>(`/api/admin/posts?${query.toString()}`)
 
     posts.value = data.list || []
     totalPages.value = data.totalPages || 0
@@ -203,7 +203,7 @@ onMounted(loadPosts)
           </h1>
 
           <p class="mt-3 max-w-2xl text-gray-600 leading-7">
-            统一管理你的草稿与已发布文章，支持搜索、筛选、查看、编辑、状态切换与删除。
+            统一管理全站草稿与已发布文章，支持搜索、筛选、查看、编辑、状态切换与删除。
           </p>
 
           <p v-if="currentUsername" class="mt-3 text-sm text-blue-600">

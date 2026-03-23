@@ -8,7 +8,6 @@ export const useApi = () => {
     const config = useRuntimeConfig()
     const apiBase = config.public.apiBase
 
-    // 🔄 刷新 token
     const requestRefresh = async () => {
         if (!import.meta.client) {
             throw new Error('当前环境无法刷新登录状态')
@@ -22,7 +21,6 @@ export const useApi = () => {
             throw new Error('登录已过期，请重新登录')
         }
 
-        // 防止并发刷新
         if (isRefreshing && refreshPromise) {
             return refreshPromise
         }
@@ -31,7 +29,7 @@ export const useApi = () => {
 
         refreshPromise = (async () => {
             try {
-                const res = await $fetch<ApiResponse<{ accessToken: string; refreshToken: string }>>(
+                const res = await $fetch<ApiResponse<{ accessToken: string; refreshToken: string; role: string }>>(
                     `${apiBase}/api/refresh`,
                     {
                         method: 'POST',
@@ -44,11 +42,20 @@ export const useApi = () => {
                     }
                 )
 
-                if (res.code !== 200 || !res.data?.accessToken || !res.data?.refreshToken) {
+                if (
+                    res.code !== 200 ||
+                    !res.data?.accessToken ||
+                    !res.data?.refreshToken ||
+                    !res.data?.role
+                ) {
                     throw new Error(res.message || '刷新登录状态失败')
                 }
 
-                auth.setTokens(res.data.accessToken, res.data.refreshToken)
+                auth.setTokens(
+                    res.data.accessToken,
+                    res.data.refreshToken,
+                    res.data.role
+                )
             } catch (error) {
                 auth.clearTokens()
                 throw error
@@ -114,7 +121,6 @@ export const useApi = () => {
                 await requestRefresh()
 
                 const retryRes = await doRequest()
-
                 if (retryRes.code !== 200) {
                     throw new Error(retryRes.message || '请求失败')
                 }

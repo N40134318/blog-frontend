@@ -1,14 +1,17 @@
 export const useAuth = () => {
     const accessToken = useState<string | null>('accessToken', () => null)
     const refreshToken = useState<string | null>('refreshToken', () => null)
+    const role = useState<string | null>('role', () => null)
 
-    const setTokens = (access: string, refresh: string) => {
+    const setTokens = (access: string, refresh: string, userRole: string) => {
         accessToken.value = access
         refreshToken.value = refresh
+        role.value = userRole
 
         if (import.meta.client) {
             localStorage.setItem('accessToken', access)
             localStorage.setItem('refreshToken', refresh)
+            localStorage.setItem('role', userRole)
         }
     }
 
@@ -17,15 +20,18 @@ export const useAuth = () => {
 
         accessToken.value = localStorage.getItem('accessToken')
         refreshToken.value = localStorage.getItem('refreshToken')
+        role.value = localStorage.getItem('role')
     }
 
     const clearTokens = () => {
         accessToken.value = null
         refreshToken.value = null
+        role.value = null
 
         if (import.meta.client) {
             localStorage.removeItem('accessToken')
             localStorage.removeItem('refreshToken')
+            localStorage.removeItem('role')
             localStorage.removeItem('token')
         }
     }
@@ -58,6 +64,7 @@ export const useAuth = () => {
     return {
         accessToken,
         refreshToken,
+        role,
         setTokens,
         loadTokens,
         clearTokens,

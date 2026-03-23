@@ -25,7 +25,7 @@ const submit = async () => {
     loading.value = true
     errorMessage.value = ''
 
-    const res = await $fetch<ApiResponse<{ accessToken: string; refreshToken: string }>>(
+    const res = await $fetch<ApiResponse<{ accessToken: string; refreshToken: string; role: string }>>(
       `${apiBase}/api/login`,
       {
         method: 'POST',
@@ -39,11 +39,20 @@ const submit = async () => {
       }
     )
 
-    if (res.code !== 200 || !res.data?.accessToken || !res.data?.refreshToken) {
+    if (
+      res.code !== 200 ||
+      !res.data?.accessToken ||
+      !res.data?.refreshToken ||
+      !res.data?.role
+    ) {
       throw new Error(res.message || '登录失败')
     }
 
-    auth.setTokens(res.data.accessToken, res.data.refreshToken)
+    auth.setTokens(
+      res.data.accessToken,
+      res.data.refreshToken,
+      res.data.role
+    )
 
     window.location.href = '/?login=success'
   } catch (error: any) {

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 const auth = useAuth()
 
-const isLoggedIn = computed(() => !!auth.accessToken.value)
-
 const logout = async () => {
   await auth.logout()
 }
@@ -11,9 +9,7 @@ const logout = async () => {
 <template>
   <div class="h-screen bg-gray-100 text-gray-900 overflow-hidden">
     <div class="flex h-full">
-
-      <!-- 左侧菜单：固定 -->
-      <aside class="hidden lg:flex w-64 shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0 h-screen">
+      <aside class="flex w-64 shrink-0 flex-col border-r border-gray-200 bg-white sticky top-0 h-screen">
         <div class="border-b border-gray-200 px-6 py-5">
           <NuxtLink to="/" class="text-xl font-bold text-gray-900 hover:text-blue-600 transition">
             Rainstorm Admin
@@ -72,10 +68,7 @@ const logout = async () => {
         </div>
       </aside>
 
-      <!-- 右侧内容：单独滚动 -->
       <div class="min-w-0 flex-1 h-screen overflow-y-auto">
-
-        <!-- 顶部轻量标题栏 -->
         <header class="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur">
           <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
             <div>

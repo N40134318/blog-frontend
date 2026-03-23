@@ -2,6 +2,7 @@
 const auth = useAuth()
 
 const isLoggedIn = computed(() => !!auth.accessToken.value)
+const isAdmin = computed(() => auth.role.value === 'admin')
 
 const logout = async () => {
   await auth.logout()
@@ -27,7 +28,14 @@ const logout = async () => {
             <template v-if="isLoggedIn">
               <NuxtLink to="/my-posts" class="hover:text-blue-600 transition">我的文章</NuxtLink>
               <NuxtLink to="/create-post" class="hover:text-blue-600 transition">发布</NuxtLink>
-              <NuxtLink to="/dashboard" class="hover:text-blue-600 transition">后台</NuxtLink>
+
+              <NuxtLink
+                v-if="isAdmin"
+                to="/dashboard"
+                class="hover:text-blue-600 transition"
+              >
+                后台
+              </NuxtLink>
             </template>
           </nav>
         </div>
