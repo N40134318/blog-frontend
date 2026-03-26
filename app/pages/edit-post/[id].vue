@@ -178,6 +178,7 @@ type PostDetail = {
   status: string | null
   createdAt: number | null
   updatedAt: number | null
+  weight?: number | null
 }
 
 const title = ref('')
@@ -189,6 +190,7 @@ const status = ref<'draft' | 'published'>('draft')
 
 const createdAt = ref<number | null>(null)
 const updatedAt = ref<number | null>(null)
+const weight = ref<number>(0)
 
 const loading = ref(true)
 const savingAction = ref<'draft' | 'published' | ''>('')
@@ -263,6 +265,7 @@ const loadPost = async () => {
     status.value = data.status === 'published' ? 'published' : 'draft'
     createdAt.value = data.createdAt || null
     updatedAt.value = data.updatedAt || null
+    weight.value = data.weight ?? 0
     initialSnapshot.value = buildSnapshot()
   } catch (error: any) {
     errorMessage.value = error?.message || '加载失败'
@@ -534,6 +537,10 @@ watch(
 
                 <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-gray-700">
                   更新：{{ formatTime(updatedAt) }}
+                </span>
+
+                <span class="inline-flex rounded-full bg-purple-50 px-3 py-1 text-purple-700">
+                  权重：{{ weight }}
                 </span>
               </div>
             </div>

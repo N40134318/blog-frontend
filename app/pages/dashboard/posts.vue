@@ -17,6 +17,8 @@ type PostItem = {
   status: string | null
   createdAt: number | null
   updatedAt: number | null
+  weight?: number | null
+  viewCount?: number | null
 }
 
 type PageResponse = {
@@ -41,6 +43,8 @@ const totalElements = ref(0)
 const statusFilter = ref<StatusFilter>('all')
 const statusLoadingId = ref<number | null>(null)
 const deleteLoadingId = ref<number | null>(null)
+const weightLoadingId = ref<number | null>(null)
+const weightInputs = ref<Record<number, number>>({})
 
 const formatTime = (timestamp: number | null | undefined) => {
   if (!timestamp) return '暂无时间'
@@ -91,6 +95,9 @@ const loadPosts = async () => {
     const data = await api<PageResponse>(`/api/admin/posts?${query.toString()}`)
 
     posts.value = data.list || []
+    weightInputs.value = Object.fromEntries(
+    (data.list || []).map(post => [post.id, post.weight ?? 0])
+    )
     totalPages.value = data.totalPages || 0
     totalElements.value = data.totalElements || 0
   } catch (error: any) {
@@ -159,6 +166,29 @@ const toggleStatus = async (post: PostItem) => {
     alert(error?.message || '更新文章状态失败')
   } finally {
     statusLoadingId.value = null
+  }
+}
+
+const updateWeight = async (post: PostItem) => {
+  const rawWeight = Number(weightInputs.value[post.id] ?? 0)
+
+  if (!Number.isInteger(rawWeight)) {
+    alert('权重必须是整数')
+    return
+  }
+
+  try {
+    weightLoadingId.value = post.id
+
+    await api(`/api/posts/${post.id}/weight?weight=${rawWeight}`, {
+      method: 'PUT'
+    })
+
+    await loadPosts()
+  } catch (error: any) {
+    alert(error?.message || '更新文章权重失败')
+  } finally {
+    weightLoadingId.value = null
   }
 }
 
@@ -402,6 +432,14 @@ onMounted(loadPosts)
                 更新：{{ formatTime(post.updatedAt) }}
               </span>
 
+              <span class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                阅读：{{ post.viewCount ?? 0 }}
+              </span>
+
+              <span class="rounded-full bg-purple-50 px-3 py-1 text-purple-700">
+                权重：{{ post.weight ?? 0 }}
+              </span>
+
               <template v-for="tag in splitTags(post.tags).slice(0, 3)" :key="tag">
                 <span class="rounded-full bg-green-50 px-3 py-1 text-green-700">
                   # {{ tag }}
@@ -409,7 +447,31 @@ onMounted(loadPosts)
               </template>
             </div>
 
-            <div class="mt-6 flex flex-wrap gap-3">
+            <div class="mt-6 space-y-4">
+              <div class="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <span class="text-sm text-gray-600">文章权重</span>
+
+                <input
+                  v-model.number="weightInputs[post.id]"
+                  type="number"
+                  class="w-28 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="权重"
+                />
+
+                <button
+                  @click="updateWeight(post)"
+                  :disabled="weightLoadingId === post.id"
+                  class="rounded-lg border border-purple-300 bg-purple-50 px-4 py-2 text-sm text-purple-700 hover:bg-purple-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ weightLoadingId === post.id ? '保存中...' : '保存权重' }}
+                </button>
+
+                <span class="text-xs text-gray-500">
+                  数值越大越靠前，测试文章可设为负数
+                </span>
+              </div>
+
+              <div class="flex flex-wrap gap-3">
               <NuxtLink
                 :to="`/posts/${post.id}`"
                 class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
@@ -445,6 +507,7 @@ onMounted(loadPosts)
               >
                 {{ deleteLoadingId === post.id ? '删除中...' : '删除' }}
               </button>
+              </div>
             </div>
           </div>
         </div>
