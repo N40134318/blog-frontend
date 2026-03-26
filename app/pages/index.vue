@@ -24,12 +24,13 @@ type PostListResponse = {
 }
 
 const latestPosts = ref<PostItem[]>([])
+const hotPosts = ref<PostItem[]>([])
 const loading = ref(true)
 const totalPosts = ref(0)
 
-onMounted(() => {
+onMounted(async () => {
   auth.loadTokens()
-  loadLatestPosts()
+  await Promise.all([loadLatestPosts(), loadHotPosts()])
 })
 
 const isLoggedIn = computed(() => !!auth.accessToken.value)
@@ -55,6 +56,15 @@ const loadLatestPosts = async () => {
   } catch (error) {
     latestPosts.value = []
     totalPosts.value = 0
+  }
+}
+
+const loadHotPosts = async () => {
+  try {
+    const data = await api<PostListResponse>('/api/posts/hot?size=6')
+    hotPosts.value = data.list || []
+  } catch (error) {
+    hotPosts.value = []
   } finally {
     loading.value = false
   }
@@ -168,6 +178,10 @@ const secondaryCta = computed(() => {
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">全站文章管理</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">评论审核</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Flyway 迁移</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Redis 缓存</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">阅读量统计</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">阅读去重</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">定时回写</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Markdown 渲染</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">目录 TOC</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">代码高亮复制</span>
@@ -303,7 +317,102 @@ const secondaryCta = computed(() => {
       </div>
     </section>
 
-    <!-- 分类 / 标签 -->
+        <!-- 热门文章 -->
+        <section class="max-w-6xl mx-auto px-4 pb-14">
+        <div class="mb-8 flex items-end justify-between gap-4">
+            <div>
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">热门文章</h2>
+            <p class="mt-2 text-gray-600">按阅读量排序的公开内容</p>
+            </div>
+
+            <NuxtLink
+            to="/posts"
+            class="text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+            查看全部 →
+            </NuxtLink>
+        </div>
+
+        <div v-if="!loading && hotPosts.length === 0" class="text-gray-500">
+            暂无热门文章
+        </div>
+
+        <div v-else class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <article
+            v-for="post in hotPosts"
+            :key="`hot-${post.id}`"
+            class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+            <div class="h-52 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img
+                v-if="post.coverImage"
+                :src="post.coverImage"
+                alt="封面图"
+                class="h-full w-full object-cover"
+                />
+                <div
+                v-else
+                class="flex h-full w-full items-center justify-center text-sm text-gray-400"
+                >
+                暂无封面
+                </div>
+            </div>
+
+            <div class="p-5">
+                <div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
+                    {{ post.author || '未知作者' }}
+                </span>
+
+                <span class="rounded-full bg-orange-50 px-3 py-1 text-orange-700">
+                    热门
+                </span>
+
+                <span class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                    {{ post.category || '未分类' }}
+                </span>
+                </div>
+
+                <NuxtLink :to="`/posts/${post.id}`" class="block">
+                <h3 class="text-xl font-semibold text-gray-900 hover:text-blue-600 transition line-clamp-2 min-h-[3.5rem]">
+                    {{ post.title }}
+                </h3>
+                </NuxtLink>
+
+                <p class="mt-3 text-sm leading-6 text-gray-600 line-clamp-3 min-h-[4.5rem]">
+                {{ post.summary }}
+                </p>
+
+                <div class="mt-4 flex min-h-[2rem] flex-wrap gap-2 text-xs">
+                <template v-for="tag in splitTags(post.tags).slice(0, 3)" :key="tag">
+                    <NuxtLink
+                    :to="`/tags/${encodeURIComponent(tag)}`"
+                    class="rounded-full bg-green-50 px-3 py-1 text-green-700 hover:bg-green-100 transition"
+                    >
+                    # {{ tag }}
+                    </NuxtLink>
+                </template>
+                </div>
+
+                <div class="mt-5 flex items-center justify-between gap-3">
+                <div class="text-xs text-gray-500">
+                    <div>更新：{{ formatTime(post.updatedAt || post.createdAt) }}</div>
+                    <div class="mt-1">阅读：{{ post.viewCount ?? 0 }}</div>
+                </div>
+
+                <NuxtLink
+                    :to="`/posts/${post.id}`"
+                    class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                >
+                    阅读全文
+                </NuxtLink>
+                </div>
+            </div>
+            </article>
+        </div>
+        </section>
+
+        <!-- 分类 / 标签 -->
     <section class="bg-white border-y border-gray-200">
       <div class="max-w-6xl mx-auto px-4 py-14">
         <div class="grid gap-8 lg:grid-cols-2">

@@ -17,6 +17,7 @@ type PostItem = {
   status: string | null
   createdAt: number | null
   updatedAt: number | null
+  viewCount?: number | null
 }
 
 type PageResponse = {
@@ -299,6 +300,7 @@ onMounted(loadPosts)
               <div class="mt-4 text-sm text-gray-500 space-y-1">
                 <div>创建时间：{{ formatTime(post.createdAt) }}</div>
                 <div>更新时间：{{ formatTime(post.updatedAt) }}</div>
+                <div>阅读量：{{ post.viewCount ?? 0 }}</div>
               </div>
 
               <div class="mt-5 flex gap-3">

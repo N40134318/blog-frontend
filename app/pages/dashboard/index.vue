@@ -17,6 +17,7 @@ type PostItem = {
   status: string | null
   createdAt: number | null
   updatedAt: number | null
+  viewCount?: number | null
 }
 
 type PageResponse = {
@@ -277,6 +278,9 @@ onMounted(loadDashboard)
                     </span>
                     <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
                       更新：{{ formatTime(post.updatedAt) }}
+                    </span>
+                    <span class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                      阅读：{{ post.viewCount ?? 0 }}
                     </span>
                   </div>
                 </div>
