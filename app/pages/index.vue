@@ -13,6 +13,7 @@ type PostItem = {
   createdAt?: number | null
   updatedAt?: number | null
   viewCount?: number | null
+  weight?: number | null
 }
 
 type PostListResponse = {
@@ -50,7 +51,7 @@ const formatTime = (timestamp: number | null | undefined) => {
 
 const loadLatestPosts = async () => {
   try {
-    const data = await api<PostListResponse>('/api/posts?page=0&size=6&keyword=')
+    const data = await api<PostListResponse>('/api/posts?page=0&size=6&keyword=&sort=latest')
     latestPosts.value = data.list || []
     totalPosts.value = data.totalElements || 0
   } catch (error) {
@@ -152,7 +153,8 @@ const secondaryCta = computed(() => {
               这是一个以内容发布为核心、以工程化演进为主线的博客项目。
               当前已经完成 JWT 登录鉴权、refresh 自动续期、admin / user 权限分级、
               后台全站文章管理、评论审核、Flyway 数据迁移规范化、
-              Markdown 阅读增强、分类标签与分页搜索等核心能力。
+              Redis 缓存阅读统计、文章权重排序、Markdown 阅读增强、
+              分类标签与分页搜索等核心能力。
             </p>
 
             <div class="mt-8 flex flex-wrap gap-4">
@@ -182,6 +184,9 @@ const secondaryCta = computed(() => {
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">阅读量统计</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">阅读去重</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">定时回写</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">文章权重</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">热门排序</span>
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">置顶 / 沉底</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">Markdown 渲染</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">目录 TOC</span>
               <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">代码高亮复制</span>
@@ -201,7 +206,7 @@ const secondaryCta = computed(() => {
                 {{ latestUpdatedText }}
               </div>
               <div class="mt-2 text-sm text-gray-600">
-                首页数据由最新公开文章自动汇总生成
+                首页数据由公开文章自动汇总生成
               </div>
             </div>
 
@@ -209,8 +214,8 @@ const secondaryCta = computed(() => {
               <div class="text-sm text-gray-500">当前阶段设计</div>
               <ul class="mt-4 space-y-2 text-sm text-gray-700">
                 <li>• 前后端分离，接口职责清晰</li>
-                <li>• 已形成基础后台、权限与审核体系</li>
-                <li>• 适合继续扩展统计、治理与运维能力</li>
+                <li>• 已形成后台、权限、审核与排序体系</li>
+                <li>• 支持通过权重对测试文章沉底或置顶</li>
               </ul>
             </div>
           </div>
@@ -223,7 +228,7 @@ const secondaryCta = computed(() => {
       <div class="mb-8 flex items-end justify-between gap-4">
         <div>
           <h2 class="text-2xl md:text-3xl font-bold text-gray-900">最新文章</h2>
-          <p class="mt-2 text-gray-600">最近发布的公开内容与阅读入口</p>
+          <p class="mt-2 text-gray-600">按发布时间与权重综合排序的公开内容</p>
         </div>
 
         <NuxtLink
@@ -317,102 +322,102 @@ const secondaryCta = computed(() => {
       </div>
     </section>
 
-        <!-- 热门文章 -->
-        <section class="max-w-6xl mx-auto px-4 pb-14">
-        <div class="mb-8 flex items-end justify-between gap-4">
-            <div>
-            <h2 class="text-2xl md:text-3xl font-bold text-gray-900">热门文章</h2>
-            <p class="mt-2 text-gray-600">按阅读量排序的公开内容</p>
+    <!-- 热门文章 -->
+    <section class="max-w-6xl mx-auto px-4 pb-14">
+      <div class="mb-8 flex items-end justify-between gap-4">
+        <div>
+          <h2 class="text-2xl md:text-3xl font-bold text-gray-900">热门文章</h2>
+          <p class="mt-2 text-gray-600">按权重与阅读量综合排序的公开内容</p>
+        </div>
+
+        <NuxtLink
+          to="/posts"
+          class="text-sm font-medium text-blue-600 hover:text-blue-700"
+        >
+          查看全部 →
+        </NuxtLink>
+      </div>
+
+      <div v-if="!loading && hotPosts.length === 0" class="text-gray-500">
+        暂无热门文章
+      </div>
+
+      <div v-else class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <article
+          v-for="post in hotPosts"
+          :key="`hot-${post.id}`"
+          class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div class="h-52 bg-gray-100 flex items-center justify-center overflow-hidden">
+            <img
+              v-if="post.coverImage"
+              :src="post.coverImage"
+              alt="封面图"
+              class="h-full w-full object-cover"
+            />
+            <div
+              v-else
+              class="flex h-full w-full items-center justify-center text-sm text-gray-400"
+            >
+              暂无封面
+            </div>
+          </div>
+
+          <div class="p-5">
+            <div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
+              <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
+                {{ post.author || '未知作者' }}
+              </span>
+
+              <span class="rounded-full bg-orange-50 px-3 py-1 text-orange-700">
+                热门
+              </span>
+
+              <span class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                {{ post.category || '未分类' }}
+              </span>
             </div>
 
-            <NuxtLink
-            to="/posts"
-            class="text-sm font-medium text-blue-600 hover:text-blue-700"
-            >
-            查看全部 →
+            <NuxtLink :to="`/posts/${post.id}`" class="block">
+              <h3 class="text-xl font-semibold text-gray-900 hover:text-blue-600 transition line-clamp-2 min-h-[3.5rem]">
+                {{ post.title }}
+              </h3>
             </NuxtLink>
-        </div>
 
-        <div v-if="!loading && hotPosts.length === 0" class="text-gray-500">
-            暂无热门文章
-        </div>
+            <p class="mt-3 text-sm leading-6 text-gray-600 line-clamp-3 min-h-[4.5rem]">
+              {{ post.summary }}
+            </p>
 
-        <div v-else class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            <article
-            v-for="post in hotPosts"
-            :key="`hot-${post.id}`"
-            class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-            >
-            <div class="h-52 bg-gray-100 flex items-center justify-center overflow-hidden">
-                <img
-                v-if="post.coverImage"
-                :src="post.coverImage"
-                alt="封面图"
-                class="h-full w-full object-cover"
-                />
-                <div
-                v-else
-                class="flex h-full w-full items-center justify-center text-sm text-gray-400"
-                >
-                暂无封面
-                </div>
-            </div>
-
-            <div class="p-5">
-                <div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
-                <span class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">
-                    {{ post.author || '未知作者' }}
-                </span>
-
-                <span class="rounded-full bg-orange-50 px-3 py-1 text-orange-700">
-                    热门
-                </span>
-
-                <span class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">
-                    {{ post.category || '未分类' }}
-                </span>
-                </div>
-
-                <NuxtLink :to="`/posts/${post.id}`" class="block">
-                <h3 class="text-xl font-semibold text-gray-900 hover:text-blue-600 transition line-clamp-2 min-h-[3.5rem]">
-                    {{ post.title }}
-                </h3>
-                </NuxtLink>
-
-                <p class="mt-3 text-sm leading-6 text-gray-600 line-clamp-3 min-h-[4.5rem]">
-                {{ post.summary }}
-                </p>
-
-                <div class="mt-4 flex min-h-[2rem] flex-wrap gap-2 text-xs">
-                <template v-for="tag in splitTags(post.tags).slice(0, 3)" :key="tag">
-                    <NuxtLink
-                    :to="`/tags/${encodeURIComponent(tag)}`"
-                    class="rounded-full bg-green-50 px-3 py-1 text-green-700 hover:bg-green-100 transition"
-                    >
-                    # {{ tag }}
-                    </NuxtLink>
-                </template>
-                </div>
-
-                <div class="mt-5 flex items-center justify-between gap-3">
-                <div class="text-xs text-gray-500">
-                    <div>更新：{{ formatTime(post.updatedAt || post.createdAt) }}</div>
-                    <div class="mt-1">阅读：{{ post.viewCount ?? 0 }}</div>
-                </div>
-
+            <div class="mt-4 flex min-h-[2rem] flex-wrap gap-2 text-xs">
+              <template v-for="tag in splitTags(post.tags).slice(0, 3)" :key="tag">
                 <NuxtLink
-                    :to="`/posts/${post.id}`"
-                    class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                  :to="`/tags/${encodeURIComponent(tag)}`"
+                  class="rounded-full bg-green-50 px-3 py-1 text-green-700 hover:bg-green-100 transition"
                 >
-                    阅读全文
+                  # {{ tag }}
                 </NuxtLink>
-                </div>
+              </template>
             </div>
-            </article>
-        </div>
-        </section>
 
-        <!-- 分类 / 标签 -->
+            <div class="mt-5 flex items-center justify-between gap-3">
+              <div class="text-xs text-gray-500">
+                <div>更新：{{ formatTime(post.updatedAt || post.createdAt) }}</div>
+                <div class="mt-1">阅读：{{ post.viewCount ?? 0 }}</div>
+              </div>
+
+              <NuxtLink
+                :to="`/posts/${post.id}`"
+                class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+              >
+                阅读全文
+              </NuxtLink>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 分类 / 标签 -->
     <section class="bg-white border-y border-gray-200">
       <div class="max-w-6xl mx-auto px-4 py-14">
         <div class="grid gap-8 lg:grid-cols-2">
@@ -499,14 +504,14 @@ const secondaryCta = computed(() => {
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <h3 class="text-lg font-semibold text-gray-900">后台管理</h3>
           <p class="mt-3 text-sm leading-6 text-gray-600">
-            管理员已可查看全站文章、评论审核、状态切换、删除内容，并通过后台总览查看全站统计信息。
+            管理员已可查看全站文章、评论审核、状态切换、删除内容，并支持文章权重管理与排序控制。
           </p>
         </div>
 
         <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 class="text-lg font-semibold text-gray-900">阅读体验</h3>
+          <h3 class="text-lg font-semibold text-gray-900">阅读与排序</h3>
           <p class="mt-3 text-sm leading-6 text-gray-600">
-            已具备 Markdown 渲染、目录导航、代码高亮、语言标签、代码复制与内容组织能力。
+            已具备 Redis 阅读量统计、阅读去重、热门文章排序、文章权重置顶沉底，以及 Markdown 阅读增强能力。
           </p>
         </div>
       </div>
@@ -531,21 +536,21 @@ const secondaryCta = computed(() => {
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <div class="text-lg font-semibold text-gray-900">内容层</div>
             <p class="mt-3 text-sm leading-6 text-gray-600">
-              已完成文章发布、编辑、删除、分类、标签、搜索、分页、草稿 / 发布管理，以及评论状态流转。
+              已完成文章发布、编辑、删除、分类、标签、搜索、分页、草稿 / 发布管理，并支持文章权重字段。
             </p>
           </div>
 
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <div class="text-lg font-semibold text-gray-900">管理层</div>
             <p class="mt-3 text-sm leading-6 text-gray-600">
-              admin 已具备全站文章管理、评论隐藏恢复删除、全站统计与后台导航骨架。
+              admin 已具备全站文章管理、评论隐藏恢复删除、全站统计、后台导航骨架，以及权重调度能力。
             </p>
           </div>
 
           <div class="rounded-2xl border border-gray-200 bg-gray-50 p-6">
             <div class="text-lg font-semibold text-gray-900">数据层</div>
             <p class="mt-3 text-sm leading-6 text-gray-600">
-              已接入 Flyway 数据迁移，完成 role 规范化与 comment.status 演进，后续结构升级更可控。
+              已接入 Flyway 数据迁移，完成 role、comment.status、view_count、weight 等字段演进，后续升级更可控。
             </p>
           </div>
         </div>
@@ -557,7 +562,7 @@ const secondaryCta = computed(() => {
       <div class="rounded-3xl bg-gray-900 px-8 py-12 text-center text-white">
         <h2 class="text-2xl md:text-3xl font-bold">准备继续扩展这个博客系统了吗？</h2>
         <p class="mt-3 text-gray-300">
-          现在它已经不仅能发文章，也具备了认证、权限、后台管理、评论审核与数据迁移规范化的系统基础。
+          现在它已经不仅能发文章，也具备了认证、权限、后台管理、评论审核、阅读统计、权重排序与数据迁移规范化的系统基础。
         </p>
 
         <div class="mt-8 flex flex-wrap justify-center gap-4">
