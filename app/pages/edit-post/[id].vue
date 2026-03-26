@@ -178,6 +178,7 @@ type PostDetail = {
   status: string | null
   createdAt: number | null
   updatedAt: number | null
+  viewCount?: number | null
   weight?: number | null
 }
 
@@ -190,6 +191,7 @@ const status = ref<'draft' | 'published'>('draft')
 
 const createdAt = ref<number | null>(null)
 const updatedAt = ref<number | null>(null)
+const viewCount = ref<number | null>(null)
 const weight = ref<number>(0)
 
 const loading = ref(true)
@@ -214,7 +216,8 @@ const buildSnapshot = () => {
     category: category.value.trim(),
     tags: tags.value.trim(),
     coverImage: coverImage.value.trim(),
-    status: status.value
+    status: status.value,
+    weight: Number(weight.value || 0)
   })
 }
 
@@ -265,6 +268,7 @@ const loadPost = async () => {
     status.value = data.status === 'published' ? 'published' : 'draft'
     createdAt.value = data.createdAt || null
     updatedAt.value = data.updatedAt || null
+    viewCount.value = data.viewCount ?? 0
     weight.value = data.weight ?? 0
     initialSnapshot.value = buildSnapshot()
   } catch (error: any) {
@@ -380,7 +384,8 @@ const submit = async (nextStatus: 'draft' | 'published') => {
         category: category.value,
         tags: tags.value,
         coverImage: coverImage.value,
-        status: nextStatus
+        status: nextStatus,
+        weight: Number(weight.value || 0)
       }
     })
 
@@ -422,12 +427,13 @@ const triggerAutoSave = () => {
       const data = await api<PostDetail>(`/api/posts/${route.params.id}`, {
         method: 'PUT',
         body: {
-          title: title.value,
-          content: content.value,
-          category: category.value,
-          tags: tags.value,
-          coverImage: coverImage.value,
-          status: 'draft'
+        title: title.value,
+        content: content.value,
+        category: category.value,
+        tags: tags.value,
+        coverImage: coverImage.value,
+        status: 'draft',
+        weight: Number(weight.value || 0)
         }
       })
 
@@ -472,7 +478,7 @@ watch(
 )
 
 watch(
-  [title, content, category, tags, coverImage],
+  [title, content, category, tags, coverImage, weight],
   () => {
     triggerAutoSave()
   }
@@ -539,6 +545,10 @@ watch(
                   更新：{{ formatTime(updatedAt) }}
                 </span>
 
+                <span class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-blue-700">
+                  阅读：{{ viewCount ?? 0 }}
+                </span>
+
                 <span class="inline-flex rounded-full bg-purple-50 px-3 py-1 text-purple-700">
                   权重：{{ weight }}
                 </span>
@@ -587,25 +597,35 @@ watch(
             />
           </div>
 
-          <div class="grid gap-6 md:grid-cols-2">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">文章分类</label>
-              <input
-                v-model="category"
-                placeholder="例如：后端"
-                class="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <div class="grid gap-6 md:grid-cols-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">文章分类</label>
+                <input
+                  v-model="category"
+                  placeholder="例如：后端"
+                  class="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">文章标签</label>
-              <input
-                v-model="tags"
-                placeholder="多个标签可用逗号、中文逗号、顿号、分号分隔"
-                class="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">文章标签</label>
+                <input
+                  v-model="tags"
+                  placeholder="多个标签可用逗号、中文逗号、顿号、分号分隔"
+                  class="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">文章权重</label>
+                <input
+                  v-model.number="weight"
+                  type="number"
+                  placeholder="默认 0，越大越靠前"
+                  class="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
             </div>
-          </div>
 
           <!-- 封面图片 -->
 					<div class="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-5">

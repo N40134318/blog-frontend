@@ -17,8 +17,8 @@ type PostItem = {
   status: string | null
   createdAt: number | null
   updatedAt: number | null
-  weight?: number | null
   viewCount?: number | null
+  weight?: number | null
 }
 
 type PageResponse = {
