@@ -12,6 +12,7 @@ type PostItem = {
   coverImage: string | null
   createdAt?: number | null
   updatedAt?: number | null
+  viewCount?: number | null
 }
 
 type PostListResponse = {
@@ -286,7 +287,8 @@ const secondaryCta = computed(() => {
 
             <div class="mt-5 flex items-center justify-between gap-3">
               <div class="text-xs text-gray-500">
-                {{ formatTime(post.updatedAt || post.createdAt) }}
+                <div>更新：{{ formatTime(post.updatedAt || post.createdAt) }}</div>
+                <div class="mt-1">阅读：{{ post.viewCount ?? 0 }}</div>
               </div>
 
               <NuxtLink

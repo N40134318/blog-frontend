@@ -12,6 +12,7 @@ type PostItem = {
   status?: string | null
   createdAt?: number | null
   updatedAt?: number | null
+  viewCount?: number | null
 }
 
 type PageResponse = {
@@ -281,6 +282,7 @@ onMounted(loadPosts)
               <div class="text-xs text-gray-500">
                 <div>发布：{{ formatTime(post.createdAt) }}</div>
                 <div class="mt-1">更新：{{ formatTime(post.updatedAt || post.createdAt) }}</div>
+                <div class="mt-1">阅读：{{ post.viewCount ?? 0 }}</div>
               </div>
 
               <NuxtLink

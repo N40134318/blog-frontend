@@ -18,6 +18,7 @@ type PostDetail = {
   status: string | null
   createdAt: number | null
   updatedAt: number | null
+  viewCount: number | null
 }
 
 type CommentItem = {
@@ -216,10 +217,13 @@ const loadPost = async () => {
 }
 
 const loadComments = async () => {
+  commentErrorMessage.value = ''
+
   try {
     const data = await api<CommentItem[]>(`/api/posts/${route.params.id}/comments`)
     comments.value = data
   } catch (error: any) {
+    comments.value = []
     commentErrorMessage.value = error?.message || '加载评论失败'
   }
 }
@@ -408,7 +412,8 @@ onBeforeUnmount(() => {
 
               <div class="mt-4 space-y-1 text-sm text-gray-500">
                 <div>发布时间：{{ formatTime(post.createdAt) }}</div>
-                <div>最近更新：{{ formatTime(post.updatedAt) }}</div>
+                <div>最近更新：{{ formatTime(post.updatedAt || post.createdAt) }}</div>
+                <div>阅读量：{{ post.viewCount ?? 0 }}</div>
               </div>
 
               <div v-if="canManagePost" class="mt-6 flex flex-wrap gap-3">
